@@ -34,6 +34,7 @@ class IsReusableSensor(BaseEntity, BinarySensorEntity):
     """Sensor to say whether the user use reusable bags."""
 
     _attr_translation_key = "is_reusable"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_should_poll = False
 
     @property
@@ -94,6 +95,7 @@ class IsPremiumSensor(BaseEntity, BinarySensorEntity):
     """Sensor for whether the user has premium membership."""
 
     _attr_translation_key = "is_premium"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_should_poll = False
 
     @property
