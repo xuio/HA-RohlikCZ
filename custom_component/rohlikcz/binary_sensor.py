@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -175,7 +175,7 @@ class IsReservedSensor(BaseEntity, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict | None:
-        timeslot_data = self._rohlik_account.data.get('timeslot', {}).get('data', {})
+        timeslot_data = self._rohlik_account.data.get('timeslot', {}).get('reservationDetail', {})
         if timeslot_data:
             return timeslot_data
         return None
