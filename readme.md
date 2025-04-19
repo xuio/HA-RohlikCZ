@@ -9,6 +9,9 @@ This custom component provides integration with [Rohlik.cz](https://www.rohlik.c
 
 ### Using [HACS](https://hacs.xyz/)
 
+> [!CAUTION] 
+> HACS installation not yet available until the integration is included in Home Assistant brands repository.
+
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=YOUR_USERNAME&repository=rohlikcz&category=Integration)
 
 ### Manual Installation
@@ -59,28 +62,6 @@ The integration provides the following entities:
 ## Data Updates
 
 The integration updates data from Rohlik.cz periodically every 10 minutes by default. The data includes your account details, premium status, delivery options, shopping cart, and more.
-
-## Example Dashboard Card
-
-You can create dashboard cards to display your Rohlik.cz information. Here's an example using a Markdown card:
-
-```yaml
-type: markdown
-content: >
-  ## Rohlik.cz Status
-  
-  **Cart Total:** {{ states('sensor.rohlik_cart_price') }} Kč
-  
-  **Next Available Delivery:** {{ states('sensor.rohlik_first_delivery') }}
-  
-  **Premium Status:** {{ states('binary_sensor.rohlik_premium_membership') }}
-  
-  **Reusable Bags:** {{ states('sensor.rohlik_bags_amount') }}
-  
-  **Orders Without Limit:** {{ states('sensor.rohlik_no_limit') }}
-  
-  **Free Express Delivery:** {{ states('sensor.rohlik_free_express') }}
-```
 
 ## Development
 
