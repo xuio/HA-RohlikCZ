@@ -36,7 +36,7 @@
         "name": "Parents Club",
         "state": {
           "on": "Yes",
-          "off": "Not"
+          "off": "No"
         }
       },
       "is_premium": {
@@ -81,16 +81,19 @@
         "name": "Free Express Deliveries"
       },
       "credit_amount": {
-        "name": "Credit Balance"
+        "name": "Credit Balance",
+        "unit_of_measurement": "CZK"
       },
       "bags_amount": {
-        "name": "Bags Amount"
+        "name": "Bags Amount",
+        "unit_of_measurement": "pcs"
       },
       "premium_days": {
         "name": "Premium Days Remaining"
       },
       "cart_price": {
-        "name": "Cart Total"
+        "name": "Cart Total",
+        "unit_of_measurement": "CZK"
       },
       "updated": {
         "name": "Last Updated"
