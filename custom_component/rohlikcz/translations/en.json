@@ -46,14 +46,14 @@
           "off": "No"
         }
       },
-      "next_order": {
+      "is_ordered": {
         "name": "Next Order Made",
         "state": {
           "on": "Yes",
           "off": "No"
         }
       },
-      "timeslot_reservation": {
+      "is_reserved": {
         "name": "Slot Reserved",
         "state": {
           "on": "Yes",

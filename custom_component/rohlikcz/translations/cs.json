@@ -46,14 +46,14 @@
           "off": "Ne"
         }
       },
-      "next_order": {
+      "is_ordered": {
         "name": "Další objednávka",
         "state": {
           "on": "Ano",
           "off": "Ne"
         }
       },
-      "timeslot_reservation": {
+      "is_reserved": {
         "name": "Rezervace slotu",
         "state": {
           "on": "Ano",
