@@ -28,42 +28,42 @@
       "is_reusable": {
         "name": "Vratné tašky",
         "state": {
-          "on": "Aktivní",
-          "off": "Neaktivní"
+          "on": "Ano",
+          "off": "Ne"
         }
       },
       "is_parent": {
         "name": "Rohlíček",
         "state": {
-          "on": "Člen",
-          "off": "Není členem"
+          "on": "Ano",
+          "off": "Ne"
         }
       },
       "is_premium": {
         "name": "Premium členství",
         "state": {
-          "on": "Aktivní",
-          "off": "Neaktivní"
+          "on": "Ano",
+          "off": "Ne"
         }
       },
       "next_order": {
-        "name": "Nadcházející objednávka",
+        "name": "Další objednávka",
         "state": {
-          "on": "Naplánována",
-          "off": "Není naplánována"
+          "on": "Ano",
+          "off": "Ne"
         }
       },
       "timeslot_reservation": {
-        "name": "Rezervace časového slotu",
+        "name": "Rezervace slotu",
         "state": {
-          "on": "Rezervováno",
-          "off": "Není rezervováno"
+          "on": "Ano",
+          "off": "Ne"
         }
       }
     },
     "sensor": {
       "first_delivery": {
-        "name": "Nejbližší dostupný rozvoz"
+        "name": "Nejbližší rozvoz"
       },
       "account_id": {
         "name": "ID účtu"
@@ -75,16 +75,16 @@
         "name": "Telefon"
       },
       "no_limit": {
-        "name": "Zbývající objednávky bez limitu"
+        "name": "Objednávky bez limitu"
       },
       "free_express": {
-        "name": "Zbývající expresní doručení zdarma"
+        "name": "Expresní doručení zdarma"
       },
       "credit_amount": {
         "name": "Zůstatek kreditu"
       },
       "bags_amount": {
-        "name": "Počet vratných tašek"
+        "name": "Počet tašek"
       },
       "premium_days": {
         "name": "Zbývající dny Premium"
@@ -93,7 +93,7 @@
         "name": "Celková cena košíku"
       },
       "updated": {
-        "name": "Naposledy aktualizováno"
+        "name": "Aktualizováno"
       }
     }
   }

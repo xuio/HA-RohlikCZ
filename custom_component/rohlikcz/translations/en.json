@@ -28,42 +28,42 @@
       "is_reusable": {
         "name": "Reusable Bags",
         "state": {
-          "on": "Enabled",
-          "off": "Disabled"
+          "on": "Yes",
+          "off": "No"
         }
       },
       "is_parent": {
         "name": "Parents Club",
         "state": {
-          "on": "Member",
-          "off": "Not a member"
+          "on": "Yes",
+          "off": "Not"
         }
       },
       "is_premium": {
         "name": "Premium Membership",
         "state": {
-          "on": "Active",
-          "off": "Inactive"
+          "on": "Yes",
+          "off": "No"
         }
       },
       "next_order": {
-        "name": "Next Order",
+        "name": "Next Order Made",
         "state": {
-          "on": "Scheduled",
-          "off": "Not scheduled"
+          "on": "Yes",
+          "off": "No"
         }
       },
       "timeslot_reservation": {
-        "name": "Timeslot Reservation",
+        "name": "Slot Reserved",
         "state": {
-          "on": "Reserved",
-          "off": "Not reserved"
+          "on": "Yes",
+          "off": "No"
         }
       }
     },
     "sensor": {
       "first_delivery": {
-        "name": "First Available Delivery"
+        "name": "Nearest Delivery"
       },
       "account_id": {
         "name": "Account ID"
@@ -75,16 +75,16 @@
         "name": "Phone"
       },
       "no_limit": {
-        "name": "Remaining Orders Without Limit"
+        "name": "No-Limit Orders"
       },
       "free_express": {
-        "name": "Remaining Free Express Deliveries"
+        "name": "Free Express Deliveries"
       },
       "credit_amount": {
         "name": "Credit Balance"
       },
       "bags_amount": {
-        "name": "Reusable Bags"
+        "name": "Bags Amount"
       },
       "premium_days": {
         "name": "Premium Days Remaining"
