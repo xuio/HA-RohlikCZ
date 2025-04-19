@@ -17,7 +17,7 @@ from .const import DOMAIN, ICON_UPDATE, ICON_CREDIT, ICON_NO_LIMIT, ICON_FREE_EX
 from .entity import BaseEntity
 from .hub import RohlikAccount
 
-SCAN_INTERVAL = timedelta(seconds=1200)
+SCAN_INTERVAL = timedelta(seconds=600)
 
 
 async def async_setup_entry(

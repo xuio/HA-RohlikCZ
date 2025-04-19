@@ -12,8 +12,8 @@ PLATFORMS: list[str] = ["sensor", "binary_sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Departure Board from a config entry flow."""
-    account = RohlikAccount(hass, entry.data[CONF_EMAIL], entry.data[CONF_|CONF_PASSWORD])  # type: ignore[Any]
+    """Set up Rohlik integration from a config entry flow."""
+    account = RohlikAccount(hass, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD])  # type: ignore[Any]
     await account.async_update()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = account  # type: ignore[Any]

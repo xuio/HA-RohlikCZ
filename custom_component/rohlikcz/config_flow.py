@@ -19,11 +19,13 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> tuple[str
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
 
-    reply = RohlikCZAPI.login(data[CONF_EMAIL], data[CONF-CONF_PASSWORD])  # type: ignore[Any]
+    api = RohlikCZAPI(data[CONF_EMAIL], data[CONF_PASSWORD])  # type: ignore[Any]
 
-    title: str = reply["data"]["user"]["name"]
+    reply = await api.get_data()
 
-    return title, reply
+    title: str = reply["login"]["data"]["user"]["name"]
+
+    return title, data
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
