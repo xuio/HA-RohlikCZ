@@ -39,7 +39,8 @@ async def async_setup_entry(
         CreditAmount(rohlik_account),
         BagsAmountSensor(rohlik_account),
         CartPriceSensor(rohlik_account),
-        UpdateSensor(rohlik_account)
+        UpdateSensor(rohlik_account),
+        LastOrder(rohlik_account)
     ]
 
     # Only add premium days remaining if the user is premium
