@@ -10,7 +10,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ICON_PREMIUM, ICON_PARENTCLUB
+from .const import DOMAIN, ICON_REUSABLE, ICON_PARENTCLUB, ICON_PREMIUM, ICON_ORDER, ICON_TIMESLOT
 from .entity import BaseEntity
 from .hub import RohlikAccount
 
@@ -21,32 +21,39 @@ async def async_setup_entry(
 ) -> None:
     """Add sensors for passed config_entry in HA."""
     rohlik_account: RohlikAccount = hass.data[DOMAIN][config_entry.entry_id]  # type: ignore[Any]
-    async_add_entities([IsPremiumSensor(rohlik_account), IsParentSensor(rohlik_account)])
+    async_add_entities([
+        IsReusableSensor(rohlik_account),
+        IsParentSensor(rohlik_account),
+        IsPremiumSensor(rohlik_account),
+        IsOrderedSensor(rohlik_account),
+        IsReservedSensor(rohlik_account)
+    ])
 
 
-class IsPremiumSensor(BaseEntity, BinarySensorEntity):
-    """Sensor for premium account."""
+class IsReusableSensor(BaseEntity, BinarySensorEntity):
+    """Sensor to say whether the user use reusable bags."""
 
-    _attr_translation_key = "is_premium"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = "is_reusable"
     _attr_should_poll = False
 
     @property
     def is_on(self) -> bool | None:
-        if self._rohlik_account.is_premium == "true":
-            return True
-        elif self._rohlik_account.is_premium == "false":
-            return False
-        else:
-            return None
+        return self._rohlik_account.data.get('login', {}).get('data', {}).get('user', {}).get('reusablePackaging', False)
 
     @property
-    def extra_state_attributes(self) -> Mapping[str, Any]:
+    def extra_state_attributes(self) -> dict | None:
+        if self.is_on:
+            bags_data = self._rohlik_account.data.get('bags', {})
+            return {
+                "bags_remaining": bags_data.get('current', "N/A"),
+                "bags_max": bags_data.get('max', "N/A"),
+                "bags_deposit": bags_data.get('deposit', {}).get('amount', "N/A")
+            }
         return None
 
     @property
     def icon(self) -> str:
-        return ICON_PREMIUM
+        return ICON_REUSABLE
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
@@ -60,7 +67,7 @@ class IsPremiumSensor(BaseEntity, BinarySensorEntity):
 
 
 class IsParentSensor(BaseEntity, BinarySensorEntity):
-    """Sensor for wheelchair accessibility of the station."""
+    """Sensor for whether the user is a member of the parent club."""
 
     _attr_translation_key = "is_parent"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -68,12 +75,7 @@ class IsParentSensor(BaseEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        if self._rohlik_account.is_parent == "true":
-            return True
-        elif self._rohlik_account.is_parent == "false":
-            return False
-        else:
-            return None
+        return self._rohlik_account.data.get('login', {}).get('data', {}).get('user', {}).get('parentsClub', False)
 
     @property
     def icon(self) -> str:
@@ -81,40 +83,111 @@ class IsParentSensor(BaseEntity, BinarySensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
-        # Sensors should also register callbacks to HA when their state changes
         self._rohlik_account.register_callback(self.async_write_ha_state)
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity being removed from hass."""
-        # The opposite of async_added_to_hass. Remove any registered call backs here.
         self._rohlik_account.remove_callback(self.async_write_ha_state)
 
 
-class NextOrderMade(BaseEntity, BinarySensorEntity):
-    """Sensor for whether the order is currently made."""
+class IsPremiumSensor(BaseEntity, BinarySensorEntity):
+    """Sensor for whether the user has premium membership."""
+
+    _attr_translation_key = "is_premium"
+    _attr_should_poll = False
+
+    @property
+    def is_on(self) -> bool | None:
+        return self._rohlik_account.data.get('login', {}).get('data', {}).get('user', {}).get('premium', {}).get('active', False)
+
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        premium_data = self._rohlik_account.data.get('login', {}).get('data', {}).get('user', {}).get('premium', {})
+        if premium_data:
+            return {
+                "type": premium_data.get('premiumMembershipType'),
+                "payment_type": premium_data.get('premiumType'),
+                "expiration_date": premium_data.get('recurrentPaymentDate'),
+                "remaining_days": premium_data.get('remainingDays'),
+                "start_date": premium_data.get('startDate'),
+                "end_date": premium_data.get('endDate'),
+                "remaining_orders_without_limit": premium_data.get('premiumLimits', {}).get('ordersWithoutPriceLimit', {}).get('remaining'),
+                "remaining_free_express": premium_data.get('premiumLimits', {}).get('freeExpressLimit', {}).get('remaining')
+            }
+        return None
+
+    @property
+    def icon(self) -> str:
+        return ICON_PREMIUM
+
+    async def async_added_to_hass(self) -> None:
+        """Run when this Entity has been added to HA."""
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Entity being removed from hass."""
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+
+class IsOrderedSensor(BaseEntity, BinarySensorEntity):
+    """Sensor for whether the next order is scheduled."""
 
     _attr_translation_key = "is_ordered"
     _attr_should_poll = False
 
     @property
     def is_on(self) -> bool | None:
-        if self._rohlik_account.is_parent == "true":
-            return True
-        elif self._rohlik_account.is_parent == "false":
-            return False
-        else:
-            return None
+        # Check if there's at least one order in the next_order list
+        return len(self._rohlik_account.data.get('next_order', [])) > 0
+
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        next_orders = self._rohlik_account.data.get('next_order', [])
+        if next_orders and len(next_orders) > 0:
+            order = next_orders[0]  # Get the first next order
+            return {
+                "order_data": order
+            }
+        return None
 
     @property
     def icon(self) -> str:
-        return ICON_PARENTCLUB
+        return ICON_ORDER
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
-        # Sensors should also register callbacks to HA when their state changes
         self._rohlik_account.register_callback(self.async_write_ha_state)
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity being removed from hass."""
-        # The opposite of async_added_to_hass. Remove any registered call backs here.
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+
+class IsReservedSensor(BaseEntity, BinarySensorEntity):
+    """Sensor for whether a timeslot is reserved."""
+
+    _attr_translation_key = "is_reserved"
+    _attr_should_poll = False
+
+    @property
+    def is_on(self) -> bool | None:
+        return self._rohlik_account.data.get('timeslot', {}).get('data', {}).get('active', False)
+
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        timeslot_data = self._rohlik_account.data.get('timeslot', {}).get('data', {})
+        if timeslot_data:
+            return timeslot_data
+        return None
+
+    @property
+    def icon(self) -> str:
+        return ICON_TIMESLOT
+
+    async def async_added_to_hass(self) -> None:
+        """Run when this Entity has been added to HA."""
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Entity being removed from hass."""
         self._rohlik_account.remove_callback(self.async_write_ha_state)

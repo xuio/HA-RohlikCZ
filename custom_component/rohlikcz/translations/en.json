@@ -2,246 +2,98 @@
   "config": {
     "step": {
       "user": {
-        "title": "Add departure board",
-        "description": "Provide configuration data. See documentation for further info.",
+        "title": "Rohlik.cz Account",
+        "description": "Enter your Rohlik.cz login credentials.",
         "data": {
-          "stop_selector": "Select the stop",
-          "api_key": "Enter API key",
-          "departures_number": "Number of departures to display",
-          "cal_events_number": "Number of calendar events for departures to be created"
+          "username": "Email",
+          "password": "Password"
         },
         "data_description": {
-          "stop_selector": "Hint - type to search",
-          "api_key": "API key for Golemio API"
+          "username": "Your Rohlik.cz account email",
+          "password": "Your Rohlik.cz account password"
         }
       }
     },
     "error": {
-      "cannot_connect": "Unknown API connection error",
-      "stop_not_in_list": "Stop was not found in list - choose only stop in provided list.",
-      "stop_not_found": "Stop with provided awsIDs was not found.",
-      "no_departures_selected": "Number of departures cannot be 0.",
-      "wrong_api_key": "Connection was not authorized. Wrong or no API key provided."
+      "cannot_connect": "Failed to connect to Rohlik.cz",
+      "invalid_auth": "Invalid email or password",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Account is already configured"
     }
   },
   "entity": {
     "binary_sensor": {
-      "infotext": {
-        "name": "Infotext"
-      },
-      "wheelchair_accessible": {
-        "name": "Wheelchair accessible",
+      "is_reusable": {
+        "name": "Reusable Bags",
         "state": {
-          "on": "Yes",
-          "off": "No"
+          "on": "Enabled",
+          "off": "Disabled"
         }
-      }
-    },
-    "calendar": {
-      "departures": {
-        "name": "Vehicle at stop",
+      },
+      "is_parent": {
+        "name": "Parents Club",
         "state": {
-          "on": "Yes",
-          "off": "No"
-        },
-        "state_attributes": {
-          "arrival_time_est": {
-            "name": "Arrival time (incl. delay)"
-          },
-          "arrival_time_sched": {
-            "name": "Arrival time (scheduled)"
-          },
-          "departure_time_est": {
-            "name": "Departure time (incl. delay)"
-          },
-          "departure_time_sched": {
-            "name": "Departure time (scheduled)"
-          },
-          "is_delay_avail": {
-            "name": "Delay is available"
-          },
-          "delay_sec": {
-            "name": "Delay (seconds)"
-          },
-          "route_name": {
-            "name": "Route name"
-          },
-          "route_type": {
-            "name": "Route type",
-            "state": {
-              "tram": "Tram",
-              "metro": "Metro",
-              "train": "Train",
-              "bus": "Bus",
-              "ferry": "Ferry",
-              "funicular": "Funicular",
-              "trolleybus": "Trolleybus"
-            }
-          },
-          "train_number": {
-            "name": "Train number"
-          },
-          "trip_id": {
-            "name": "GTFS trip ID"
-          },
-          "trip_direction": {
-            "name": "Next direction"
-          },
-          "trip_headsign": {
-            "name": "Trip headsign"
-          },
-          "is_air_conditioned": {
-            "name": "Vehicle has air conditioning"
-          },
-          "is_at_stop": {
-            "name": "Vehicle is physically at stop"
-          },
-          "is_canceled": {
-            "name": "Trip is cancelled"
-          },
-          "is_night": {
-            "name": "Night route"
-          },
-          "is_regional": {
-            "name": "Suburban or regional route"
-          },
-          "is_substitute": {
-            "name": "Substitute service"
-          },
-          "is_wheelchair_accessible": {
-            "name": "Vehicle is wheelchair accessible"
-          },
-          "last_stop_id": {
-            "name": "Last reported stop (GTFS ID)"
-          },
-          "last_stop_name": {
-            "name": "Last reported stop (name)"
-          },
-          "stop_id": {
-            "name": "Stop GTFS ID"
-          },
-          "stop_platform": {
-            "name": "Stop platform code"
-          },
-          "latitude": {
-            "name": "Stop location (latitude)"
-          },
-          "longitude": {
-            "name": "Stop location (longitude)"
-          }
+          "on": "Member",
+          "off": "Not a member"
+        }
+      },
+      "is_premium": {
+        "name": "Premium Membership",
+        "state": {
+          "on": "Active",
+          "off": "Inactive"
+        }
+      },
+      "next_order": {
+        "name": "Next Order",
+        "state": {
+          "on": "Scheduled",
+          "off": "Not scheduled"
+        }
+      },
+      "timeslot_reservation": {
+        "name": "Timeslot Reservation",
+        "state": {
+          "on": "Reserved",
+          "off": "Not reserved"
         }
       }
     },
     "sensor": {
-      "departure_time": {
-        "name": "Next departure time ({num})"
+      "first_delivery": {
+        "name": "First Available Delivery"
       },
-      "latitude": {
-        "name": "Stop location (latitude)"
+      "account_id": {
+        "name": "Account ID"
       },
-      "longitude": {
-        "name": "Stop location (longitude)"
+      "email": {
+        "name": "Email"
       },
-      "platform": {
-        "name": "Platform"
+      "phone": {
+        "name": "Phone"
       },
-      "route_name": {
-        "name": "Next route name ({num})",
-        "state_attributes": {
-          "arrival_time_est": {
-            "name": "Arrival time (incl. delay)"
-          },
-          "arrival_time_sched": {
-            "name": "Arrival time (scheduled)"
-          },
-          "departure_time_est": {
-            "name": "Departure time (incl. delay)"
-          },
-          "departure_time_sched": {
-            "name": "Departure time (scheduled)"
-          },
-          "is_delay_avail": {
-            "name": "Delay is available"
-          },
-          "delay_sec": {
-            "name": "Delay (seconds)"
-          },
-          "route_name": {
-            "name": "Route name"
-          },
-          "route_type": {
-            "name": "Route type",
-            "state": {
-              "tram": "Tram",
-              "metro": "Metro",
-              "train": "Train",
-              "bus": "Bus",
-              "ferry": "Ferry",
-              "funicular": "Funicular",
-              "trolleybus": "Trolleybus"
-            }
-          },
-          "train_number": {
-            "name": "Train number"
-          },
-          "trip_id": {
-            "name": "GTFS trip ID"
-          },
-          "trip_direction": {
-            "name": "Next direction"
-          },
-          "trip_headsign": {
-            "name": "Trip headsign"
-          },
-          "is_air_conditioned": {
-            "name": "Vehicle has air conditioning"
-          },
-          "is_at_stop": {
-            "name": "Vehicle is physically at stop"
-          },
-          "is_canceled": {
-            "name": "Trip is cancelled"
-          },
-          "is_night": {
-            "name": "Night route"
-          },
-          "is_regional": {
-            "name": "Suburban or regional route"
-          },
-          "is_substitute": {
-            "name": "Substitute service"
-          },
-          "is_wheelchair_accessible": {
-            "name": "Vehicle is wheelchair accessible"
-          },
-          "last_stop_id": {
-            "name": "Last reported stop (GTFS ID)"
-          },
-          "last_stop_name": {
-            "name": "Last reported stop (name)"
-          },
-          "stop_id": {
-            "name": "Stop GTFS ID"
-          },
-          "stop_platform": {
-            "name": "Stop platform code"
-          },
-          "latitude": {
-            "name": "Stop location (latitude)"
-          },
-          "longitude": {
-            "name": "Stop location (longitude)"
-          }
-        }
+      "no_limit": {
+        "name": "Remaining Orders Without Limit"
       },
-      "stop_name": {
-        "name": "Stop name"
+      "free_express": {
+        "name": "Remaining Free Express Deliveries"
+      },
+      "credit_amount": {
+        "name": "Credit Balance"
+      },
+      "bags_amount": {
+        "name": "Reusable Bags"
+      },
+      "premium_days": {
+        "name": "Premium Days Remaining"
+      },
+      "cart_price": {
+        "name": "Cart Total"
       },
       "updated": {
-        "name": "Updated"
-      },
-      "zone": {
-        "name": "Zone"
+        "name": "Last Updated"
       }
     }
   }
