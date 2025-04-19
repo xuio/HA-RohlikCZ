@@ -97,6 +97,9 @@
       },
       "updated": {
         "name": "Last Updated"
+      },
+      "last_order": {
+        "name": "Last Order"
       }
     }
   }

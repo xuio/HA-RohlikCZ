@@ -92,11 +92,14 @@
         "name": "Zbývající dny Premium"
       },
       "cart_price": {
-        "name": "Celková cena košíku",
+        "name": "Cena košíku",
         "unit_of_measurement": "Kč"
       },
       "updated": {
         "name": "Aktualizováno"
+      },
+      "last_order": {
+        "name": "Poslední objednávka"
       }
     }
   }
