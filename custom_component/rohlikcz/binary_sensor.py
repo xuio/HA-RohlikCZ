@@ -175,7 +175,7 @@ class IsReservedSensor(BaseEntity, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict | None:
-        timeslot_data = self._rohlik_account.data.get('timeslot', {}).get('reservationDetail', {})
+        timeslot_data = self._rohlik_account.data.get('timeslot', {}).get('data', {}).get('reservationDetail', {})
         if timeslot_data:
             return timeslot_data
         return None
