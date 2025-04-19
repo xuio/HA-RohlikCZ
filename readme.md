@@ -2,7 +2,8 @@
 
 This custom component provides integration with [Rohlik.cz](https://www.rohlik.cz), the popular Czech food delivery service. It allows you to monitor your Rohlik.cz account information, shopping cart, delivery status, and premium membership details directly in Home Assistant.
 
-[!CAUTION] This integration is made by reverse engineering API that is used by the rohlik.cz website. Use this integration at your own risk.
+[!CAUTION] 
+This integration is made by reverse engineering API that is used by the rohlik.cz website. Use this integration at your own risk.
 
 ## Installation
 
