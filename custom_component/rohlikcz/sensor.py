@@ -330,7 +330,7 @@ class LastOrder(BaseEntity, SensorEntity):
     @property
     def native_value(self) -> datetime:
         """Returns remaining orders without limit."""
-        return datetime.fromtimestamp(self._rohlik_account.data["last_order"][0].get("orderTime", None))
+        return datetime.strptime(self._rohlik_account.data["last_order"][0].get("orderTime", None), "%Y-%m-%dT%H:%M:%S.%f%z")
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any] | None:
