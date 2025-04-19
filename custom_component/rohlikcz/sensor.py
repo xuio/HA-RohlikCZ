@@ -13,7 +13,8 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, ICON_UPDATE, ICON_CREDIT, ICON_NO_LIMIT, ICON_FREE_EXPRESS, ICON_DELIVERY, ICON_BAGS, ICON_CART, ICON_ACCOUNT, ICON_EMAIL, ICON_PHONE, ICON_PREMIUM_DAYS
+from .const import DOMAIN, ICON_UPDATE, ICON_CREDIT, ICON_NO_LIMIT, ICON_FREE_EXPRESS, ICON_DELIVERY, ICON_BAGS, \
+    ICON_CART, ICON_ACCOUNT, ICON_EMAIL, ICON_PHONE, ICON_PREMIUM_DAYS, ICON_LAST_ORDER
 from .entity import BaseEntity
 from .hub import RohlikAccount
 
@@ -233,9 +234,9 @@ class BagsAmountSensor(BaseEntity, SensorEntity):
         bags_data = self._rohlik_account.data.get('bags', {})
         if bags_data:
             return {
-                "max_bags": bags_data.get('max', 0),
-                "deposit_amount": bags_data.get('deposit', {}).get('amount', 0),
-                "deposit_currency": bags_data.get('deposit', {}).get('currency', 'CZK')
+                "Max Bags": bags_data.get('max', 0),
+                "Deposit Amount": bags_data.get('deposit', {}).get('amount', 0),
+                "Deposit Currency": bags_data.get('deposit', {}).get('currency', 'CZK')
             }
         return None
 
@@ -267,10 +268,10 @@ class PremiumDaysRemainingSensor(BaseEntity, SensorEntity):
         premium_data = self._rohlik_account.data.get('login', {}).get('data', {}).get('user', {}).get('premium', {})
         if premium_data:
             return {
-                "premium_type": premium_data.get('premiumMembershipType', ''),
-                "recurrent_payment_date": premium_data.get('recurrentPaymentDate', ''),
-                "start_date": premium_data.get('startDate', ''),
-                "end_date": premium_data.get('endDate', '')
+                "Premium Type": premium_data.get('premiumMembershipType', ''),
+                "Payment Date": premium_data.get('recurrentPaymentDate', ''),
+                "Start Date": premium_data.get('startDate', ''),
+                "End Date": premium_data.get('endDate', '')
             }
         return None
 
@@ -302,15 +303,49 @@ class CartPriceSensor(BaseEntity, SensorEntity):
         cart_data = self._rohlik_account.data.get('cart', {}).get('data', {})
         if cart_data:
             return {
-                "total_savings": cart_data.get('totalSavings', 0),
-                "minimal_order_price": cart_data.get('minimalOrderPrice', 0),
-                "can_submit": cart_data.get('submitConditionPassed', False)
+                "Total savings": cart_data.get('totalSavings', 0),
+                "Minimal Order Price": cart_data.get('minimalOrderPrice', 0),
+                "Can Order": cart_data.get('submitConditionPassed', False)
             }
         return None
 
     @property
     def icon(self) -> str:
         return ICON_CART
+
+    async def async_added_to_hass(self) -> None:
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+class LastOrder(BaseEntity, SensorEntity):
+    """Sensor for datetime from last order."""
+
+    _attr_translation_key = "last_order"
+    _attr_should_poll = False
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> datetime:
+        """Returns remaining orders without limit."""
+        return datetime.fromtimestamp(self._rohlik_account.data["last_order"][0].get("orderTime", None))
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Returns last order details."""
+        last_order_data = self._rohlik_account.data['last_order'][0]
+        if len(last_order_data) > 0:
+            return {
+                "Items": last_order_data.get('itemsCount', None),
+                "Price": last_order_data.get('priceComposition', {}).get('total', {}).get('amount', None),
+            }
+        return None
+
+
+    @property
+    def icon(self) -> str:
+        return ICON_LAST_ORDER
 
     async def async_added_to_hass(self) -> None:
         self._rohlik_account.register_callback(self.async_write_ha_state)
