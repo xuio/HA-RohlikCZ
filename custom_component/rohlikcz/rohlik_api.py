@@ -14,7 +14,9 @@ ENDPOINTS = {
     "announcements": "/services/frontend-service/announcements/top",
     "cart": "/services/frontend-service/v2/cart",
     "bags": "/api/v1/reusable-bags/user-info",
-    "timeslot": "/services/frontend-service/v1/timeslot-reservation"
+    "timeslot": "/services/frontend-service/v1/timeslot-reservation",
+    "last_order": "/api/v3/orders/delivered?offset=0&limit=1",
+    "premium_profile": "/services/frontend-service/premium/profile"
 }
 
 
