@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, ICON_UPDATE, ICON_CREDIT, ICON_NO_LIMIT, ICON_FREE_EXPRESS, ICON_DELIVERY, ICON_BAGS, \
-    ICON_CART, ICON_ACCOUNT, ICON_EMAIL, ICON_PHONE, ICON_PREMIUM_DAYS, ICON_LAST_ORDER
+    ICON_CART, ICON_ACCOUNT, ICON_EMAIL, ICON_PHONE, ICON_PREMIUM_DAYS, ICON_LAST_ORDER, ICON_NEXT_ORDER_SINCE, ICON_NEXT_ORDER_TILL
 from .entity import BaseEntity
 from .hub import RohlikAccount
 
@@ -40,7 +40,9 @@ async def async_setup_entry(
         BagsAmountSensor(rohlik_account),
         CartPriceSensor(rohlik_account),
         UpdateSensor(rohlik_account),
-        LastOrder(rohlik_account)
+        LastOrder(rohlik_account),
+        NextOrderTill(rohlik_account),
+        NextOrderSince(rohlik_account)
     ]
 
     # Only add premium days remaining if the user is premium
@@ -319,6 +321,61 @@ class CartPriceSensor(BaseEntity, SensorEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+class NextOrderSince(BaseEntity, SensorEntity):
+    """Sensor for start of delivery window of next order."""
+
+    _attr_translation_key = "next_order_since"
+    _attr_should_poll = False
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Returns remaining orders without limit."""
+        if len(self._rohlik_account.data['next_order']) > 0:
+            slot_start = datetime.strptime(self._rohlik_account.data["next_order"][0].get("deliverySlot", {}).get("since", None),
+                                 "%Y-%m-%dT%H:%M:%S.%f%z")
+            return slot_start
+        else:
+            return None
+
+    @property
+    def icon(self) -> str:
+        return ICON_NEXT_ORDER_SINCE
+
+    async def async_added_to_hass(self) -> None:
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+class NextOrderTill(BaseEntity, SensorEntity):
+    """Sensor for finish of delivery window of next order."""
+
+    _attr_translation_key = "next_order_till"
+    _attr_should_poll = False
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Returns remaining orders without limit."""
+        if len(self._rohlik_account.data['next_order']) > 0:
+            slot_start = datetime.strptime(self._rohlik_account.data["next_order"][0].get("deliverySlot", {}).get("till", None),
+                                 "%Y-%m-%dT%H:%M:%S.%f%z")
+            return slot_start
+        else:
+            return None
+
+    @property
+    def icon(self) -> str:
+        return ICON_NEXT_ORDER_TILL
+
+    async def async_added_to_hass(self) -> None:
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
 
 class LastOrder(BaseEntity, SensorEntity):
     """Sensor for datetime from last order."""

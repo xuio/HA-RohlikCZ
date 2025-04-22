@@ -100,6 +100,12 @@
       },
       "last_order": {
         "name": "Poslední objednávka"
+      },
+      "next_order_since": {
+        "name": "Začátek doručení"
+      },
+      "next_order_till": {
+        "name": "Konec doručení"
       }
     }
   }
