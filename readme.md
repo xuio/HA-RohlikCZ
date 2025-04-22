@@ -9,9 +9,6 @@ This custom component provides integration with [Rohlik.cz](https://www.rohlik.c
 
 ### Using [HACS](https://hacs.xyz/)
 
-> [!CAUTION] 
-> HACS installation not yet available until the integration is included in Home Assistant brands repository.
-
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=YOUR_USERNAME&repository=rohlikcz&category=Integration)
 
 ### Manual Installation
