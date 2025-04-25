@@ -25,6 +25,13 @@
   },
   "entity": {
     "binary_sensor": {
+      "is_express_available": {
+        "name": "Express Dostupné",
+        "state": {
+          "on": "Ano",
+          "off": "Ne"
+        }
+      },
       "is_reusable": {
         "name": "Vratné tašky",
         "state": {

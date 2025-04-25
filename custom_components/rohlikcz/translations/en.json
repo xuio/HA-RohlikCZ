@@ -25,6 +25,13 @@
   },
   "entity": {
     "binary_sensor": {
+      "is_express_available": {
+        "name": "Express Available",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
       "is_reusable": {
         "name": "Reusable Bags",
         "state": {
