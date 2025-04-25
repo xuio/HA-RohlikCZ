@@ -228,20 +228,18 @@ class BagsAmountSensor(BaseEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        """Returns number of bags."""
-        return self._rohlik_account.data.get('bags', {}).get('current', 0)
+        """Returns number of reusable bags."""
+        return self._rohlik_account.data["bags"].get('current', 0)
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any] | None:
-        """Returns bag details."""
-        bags_data = self._rohlik_account.data.get('bags', {})
-        if bags_data:
-            return {
-                "Max Bags": bags_data.get('max', 0),
-                "Deposit Amount": bags_data.get('deposit', {}).get('amount', 0),
-                "Deposit Currency": bags_data.get('deposit', {}).get('currency', 'CZK')
-            }
-        return None
+        """Returns reusable bag details."""
+        bags_data = self._rohlik_account.data["bags"]
+        extra_attr: dict = {"Max Bags": bags_data.get('max', 0)}
+        if bags_data.get('deposit', None):
+            extra_attr["Deposit Amount"] = bags_data.get('deposit').get('amount', 0)
+            extra_attr["Deposit Currency"] = bags_data.get('deposit').get('currency', 'CZK')
+        return extra_attr
 
     @property
     def icon(self) -> str:
