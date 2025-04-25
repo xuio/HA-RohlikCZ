@@ -42,17 +42,6 @@ class IsReusableSensor(BaseEntity, BinarySensorEntity):
         return self._rohlik_account.data.get('login', {}).get('data', {}).get('user', {}).get('reusablePackaging', False)
 
     @property
-    def extra_state_attributes(self) -> dict | None:
-        if self.is_on:
-            bags_data = self._rohlik_account.data.get('bags', {})
-            return {
-                "bags_remaining": bags_data.get('current', "N/A"),
-                "bags_max": bags_data.get('max', "N/A"),
-                "bags_deposit": bags_data.get('deposit', {}).get('amount', "N/A")
-            }
-        return None
-
-    @property
     def icon(self) -> str:
         return ICON_REUSABLE
 
