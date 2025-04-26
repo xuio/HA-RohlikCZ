@@ -1,6 +1,3 @@
-> [!CAUTION] 
-> On 24 April 2025, Rohlík.cz introduced significant changes to its website and internal APIs, so you may experience issues with this integration. We are working to update the integration to restore full functionality.
-
 # Rohlik.cz Integration for Home Assistant
 
 This custom component provides integration with [Rohlik.cz](https://www.rohlik.cz), the popular Czech food delivery service. It allows you to monitor your Rohlik.cz account information, shopping cart, delivery status, and premium membership details directly in Home Assistant.
@@ -44,10 +41,11 @@ The integration provides the following entities:
 - **Next Order** - Shows if you have a scheduled order with order details as attributes
 - **Timeslot Reservation** - Shows if you have reserved a delivery timeslot
 - **Parents Club** - Indicates if you're a member of the Parents Club
+- **Express Available** - Indicates if express delivery is currently available
 
 ### Sensors
 
-- **First Available Delivery** - Shows the earliest available delivery time with location details
+- **First Available Delivery** - Shows the earliest available delivery time with location details as string
 - **Account ID** - Your Rohlik.cz account ID
 - **Email** - Your Rohlik.cz email address
 - **Phone** - Your registered phone number
@@ -58,6 +56,11 @@ The integration provides the following entities:
 - **Premium Days Remaining** - Days left in your premium membership (only appears for premium users)
 - **Cart Total** - Current shopping cart total
 - **Last Updated** - Timestamp of the last data update from Rohlik.cz
+- **Slot Express Time** - Timestamp of express delivery slot (if available)
+- **Slot Standard Time** - Timestamp of nearest standard delivery slot available
+- **Slot Eco Time** - Timestamp of nearest eco delivery slot available
+- **Delivery Slot Start** - Timestamp of beginning of delivery window for order made
+- **Delivery Slot Start** - Timestamp of end of delivery window for order made
 
 ## Data Updates
 

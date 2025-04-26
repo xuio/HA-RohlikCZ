@@ -1,6 +1,8 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
+import logging
+
 from collections.abc import Mapping
 from datetime import timedelta, datetime
 from typing import Any
@@ -9,17 +11,19 @@ from zoneinfo import ZoneInfo
 from homeassistant.helpers.entity import Entity
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, ICON_UPDATE, ICON_CREDIT, ICON_NO_LIMIT, ICON_FREE_EXPRESS, ICON_DELIVERY, ICON_BAGS, \
-    ICON_CART, ICON_ACCOUNT, ICON_EMAIL, ICON_PHONE, ICON_PREMIUM_DAYS, ICON_LAST_ORDER, ICON_NEXT_ORDER_SINCE, ICON_NEXT_ORDER_TILL
+    ICON_CART, ICON_ACCOUNT, ICON_EMAIL, ICON_PHONE, ICON_PREMIUM_DAYS, ICON_LAST_ORDER, ICON_NEXT_ORDER_SINCE, \
+    ICON_NEXT_ORDER_TILL
 from .entity import BaseEntity
 from .hub import RohlikAccount
 
 SCAN_INTERVAL = timedelta(seconds=600)
 
+_LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -42,7 +46,10 @@ async def async_setup_entry(
         UpdateSensor(rohlik_account),
         LastOrder(rohlik_account),
         NextOrderTill(rohlik_account),
-        NextOrderSince(rohlik_account)
+        NextOrderSince(rohlik_account),
+        FirstExpressSlot(rohlik_account),
+        FirstStandardSlot(rohlik_account),
+        FirstEcoSlot(rohlik_account)
     ]
 
     # Only add premium days remaining if the user is premium
@@ -50,6 +57,157 @@ async def async_setup_entry(
         entities.append(PremiumDaysRemainingSensor(rohlik_account))
 
     async_add_entities(entities)
+
+class FirstExpressSlot(BaseEntity, SensorEntity):
+    """Sensor for first available delivery."""
+
+    _attr_translation_key = "express_slot"
+    _attr_should_poll = False
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Returns datetime of the express slot."""
+        preselected_slots = self._rohlik_account.data["next_delivery_slot"].get('data', {}).get('preselectedSlots', [])
+        state = None
+        for slot in preselected_slots:
+            if slot.get("type", "") == "EXPRESS":
+                state = datetime.strptime(slot.get("slot", {}).get("interval", {}).get("since", None),
+                                          "%Y-%m-%dT%H:%M:%S%z")
+                break
+        return state
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Returns extra state attributes."""
+        preselected_slots = self._rohlik_account.data["next_delivery_slot"].get('data', {}).get('preselectedSlots', [])
+        extra_attrs = None
+        for slot in preselected_slots:
+            if slot.get("type", "") == "EXPRESS":
+                extra_attrs = {
+                    "Delivery Slot End": datetime.strptime(slot.get("slot", {}).get("interval", {}).get("till", None),
+                                                           "%Y-%m-%dT%H:%M:%S%z"),
+                    "Remaining Capacity Percent": int(
+                        slot.get("slot", {}).get("timeSlotCapacityDTO", {}).get("totalFreeCapacityPercent", 0)),
+                    "Remaining Capacity Message": slot.get("slot", {}).get("timeSlotCapacityDTO", {}).get(
+                        "capacityMessage", None),
+                    "Price": int(slot.get("price", 0)),
+                    "Title": slot.get("title", None),
+                    "Subtitle": slot.get("subtitle", None)
+                }
+                break
+
+        return extra_attrs
+
+    @property
+    def entity_picture(self) -> str | None:
+        return  "https://cdn.rohlik.cz/images/icons/preselected-slots/express.png"
+
+
+    async def async_added_to_hass(self) -> None:
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+
+class FirstStandardSlot(BaseEntity, SensorEntity):
+    """Sensor for first available delivery."""
+
+    _attr_translation_key = "standard_slot"
+    _attr_should_poll = False
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Returns datetime of the standard slot."""
+        preselected_slots = self._rohlik_account.data["next_delivery_slot"].get('data', {}).get('preselectedSlots', [])
+        state = None
+        for slot in preselected_slots:
+            if slot.get("type", "") == "FIRST":
+                state = datetime.strptime(slot.get("slot", {}).get("interval", {}).get("since", None),
+                                          "%Y-%m-%dT%H:%M:%S%z")
+                break
+        return state
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Returns extra state attributes."""
+        preselected_slots = self._rohlik_account.data["next_delivery_slot"].get('data', {}).get('preselectedSlots', [])
+        extra_attrs = None
+        for slot in preselected_slots:
+            if slot.get("type", "") == "FIRST":
+                extra_attrs = {
+                    "Delivery Slot End": datetime.strptime(slot.get("slot", {}).get("interval", {}).get("till", None),
+                                                           "%Y-%m-%dT%H:%M:%S%z"),
+                    "Remaining Capacity Percent": int(
+                        slot.get("slot", {}).get("timeSlotCapacityDTO", {}).get("totalFreeCapacityPercent", 0)),
+                    "Remaining Capacity Message": slot.get("slot", {}).get("timeSlotCapacityDTO", {}).get(
+                        "capacityMessage", None),
+                    "Price": int(slot.get("price", 0)),
+                    "Title": slot.get("title", None),
+                    "Subtitle": slot.get("subtitle", None)
+                    }
+                break
+
+        return extra_attrs
+
+    @property
+    def entity_picture(self) -> str | None:
+        return  "https://cdn.rohlik.cz/images/icons/preselected-slots/first.png"
+
+    async def async_added_to_hass(self) -> None:
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+
+class FirstEcoSlot(BaseEntity, SensorEntity):
+    """Sensor for first available delivery."""
+
+    _attr_translation_key = "eco_slot"
+    _attr_should_poll = False
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Returns datetime of the eco slot."""
+        preselected_slots = self._rohlik_account.data["next_delivery_slot"].get('data', {}).get('preselectedSlots', [])
+        state = None
+        for slot in preselected_slots:
+            if slot.get("type", "") == "ECO":
+                state = datetime.strptime(slot.get("slot", {}).get("interval", {}).get("since", None), "%Y-%m-%dT%H:%M:%S%z")
+                break
+        return state
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Returns extra state attributes."""
+        preselected_slots = self._rohlik_account.data["next_delivery_slot"].get('data', {}).get('preselectedSlots', [])
+        extra_attrs = None
+        for slot in preselected_slots:
+            if slot.get("type", "") == "ECO":
+                extra_attrs = {"Delivery Slot End": datetime.strptime(slot.get("slot", {}).get("interval", {}).get("till", None), "%Y-%m-%dT%H:%M:%S%z"),
+                    "Remaining Capacity Percent": int(slot.get("slot", {}).get("timeSlotCapacityDTO", {}).get("totalFreeCapacityPercent", 0)),
+                    "Remaining Capacity Message": slot.get("slot", {}).get("timeSlotCapacityDTO", {}).get("capacityMessage", None),
+                    "Price": int(slot.get("price", 0)),
+                    "Title": slot.get("title", None),
+                    "Subtitle": slot.get("subtitle", None)
+                    }
+                break
+
+        return extra_attrs
+
+    @property
+    def entity_picture(self) -> str | None:
+        return  "https://cdn.rohlik.cz/images/icons/preselected-slots/eco.png"
+
+    async def async_added_to_hass(self) -> None:
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
 
 
 class FirstDeliverySensor(BaseEntity, SensorEntity):

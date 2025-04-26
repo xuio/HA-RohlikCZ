@@ -10,7 +10,8 @@ from homeassistant.const import EntityCategory, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, ICON_REUSABLE, ICON_PARENTCLUB, ICON_PREMIUM, ICON_ORDER, ICON_TIMESLOT
+from .const import DOMAIN, ICON_REUSABLE, ICON_PARENTCLUB, ICON_PREMIUM, ICON_ORDER, ICON_TIMESLOT, ICON_CALENDAR_CHECK, \
+    ICON_CALENDAR_REMOVE
 from .entity import BaseEntity
 from .hub import RohlikAccount
 
@@ -26,8 +27,39 @@ async def async_setup_entry(
         IsParentSensor(rohlik_account),
         IsPremiumSensor(rohlik_account),
         IsOrderedSensor(rohlik_account),
-        IsReservedSensor(rohlik_account)
+        IsReservedSensor(rohlik_account),
+        IsExpressAvailable(rohlik_account)
     ])
+
+class IsExpressAvailable(BaseEntity, BinarySensorEntity):
+    _attr_translation_key = "is_express_available"
+    _attr_should_poll = False
+
+    @property
+    def is_on(self) -> bool | None:
+        if not self._rohlik_account.data["next_delivery_slot"].get('data', {}).get('expressSlot', None):
+            return False
+        elif int(self._rohlik_account.data["next_delivery_slot"].get('data', {}).get('expressSlot', {}).get("timeSlotCapacityDTO", {}).get("totalFreeCapacityPercent", 0)) == 0:
+            return False
+        else:
+            return True
+
+    @property
+    def icon(self) -> str:
+        if self.is_on:
+            return ICON_CALENDAR_CHECK
+        else:
+            return ICON_CALENDAR_REMOVE
+
+    async def async_added_to_hass(self) -> None:
+        """Run when this Entity has been added to HA."""
+        # Sensors should also register callbacks to HA when their state changes
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Entity being removed from hass."""
+        # The opposite of async_added_to_hass. Remove any registered call backs here.
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
 
 
 class IsReusableSensor(BaseEntity, BinarySensorEntity):

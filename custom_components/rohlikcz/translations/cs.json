@@ -25,6 +25,13 @@
   },
   "entity": {
     "binary_sensor": {
+      "is_express_available": {
+        "name": "Express Dostupné",
+        "state": {
+          "on": "Ano",
+          "off": "Ne"
+        }
+      },
       "is_reusable": {
         "name": "Vratné tašky",
         "state": {
@@ -106,6 +113,15 @@
       },
       "next_order_till": {
         "name": "Konec doručení"
+      },
+      "express_slot": {
+        "name": "Doručení express"
+      },
+      "standard_slot": {
+        "name": "Doručení strandard"
+      },
+      "eco_slot": {
+        "name": "Doručení eko"
       }
     }
   }

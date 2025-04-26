@@ -7,23 +7,26 @@ import functools
 _LOGGER = logging.getLogger(__name__)
 
 BASE_URL = "https://www.rohlik.cz"
-ENDPOINTS = {
-    "login": "/services/frontend-service/login",
-    "delivery": "/services/frontend-service/first-delivery?reasonableDeliveryTime=true",
-    "next_order": "/api/v3/orders/upcoming",
-    "announcements": "/services/frontend-service/announcements/top",
-    "cart": "/services/frontend-service/v2/cart",
-    "bags": "/api/v1/reusable-bags/user-info",
-    "timeslot": "/services/frontend-service/v1/timeslot-reservation",
-    "last_order": "/api/v3/orders/delivered?offset=0&limit=1",
-    "premium_profile": "/services/frontend-service/premium/profile"
-}
 
 
 class RohlikCZAPI:
     def __init__(self, username, password):
         self._user = username
         self._pass = password
+        self._user_id = None
+        self._address_id = None
+        self.endpoints = {
+            "login": "/services/frontend-service/login",
+            "delivery": "/services/frontend-service/first-delivery?reasonableDeliveryTime=true",
+            "next_order": "/api/v3/orders/upcoming",
+            "announcements": "/services/frontend-service/announcements/top",
+            "cart": "/services/frontend-service/v2/cart",
+            "bags": "/api/v1/reusable-bags/user-info",
+            "timeslot": "/services/frontend-service/v1/timeslot-reservation",
+            "last_order": "/api/v3/orders/delivered?offset=0&limit=1",
+            "premium_profile": "/services/frontend-service/premium/profile",
+            "next_delivery_slot": f"/services/frontend-service/timeslots-api/"
+        }
 
     def _run_in_executor(self, func, *args, **kwargs):
         """Run blocking requests calls in a thread executor to maintain async compatibility"""
@@ -46,7 +49,7 @@ class RohlikCZAPI:
         try:
             # Step 1: Login
             login_data = {"email": self._user, "password": self._pass, "name": ""}
-            login_url = f"{BASE_URL}{ENDPOINTS['login']}"
+            login_url = f"{BASE_URL}{self.endpoints['login']}"
 
             login_response = await self._run_in_executor(
                 session.post,
@@ -55,11 +58,17 @@ class RohlikCZAPI:
             )
             login_response.raise_for_status()
             result["login"] = login_response.json()
+            self._user_id = result["login"].get("data", {}).get("user", {}).get("id", None)
+            self._address_id = result["login"].get("data", {}).get("address", {}).get("id", None)
+
 
             # Step 2: Get data from all other endpoints
-            for endpoint, path in ENDPOINTS.items():
+            for endpoint, path in self.endpoints.items():
                 if endpoint == "login":
                     continue  # Already handled
+
+                if endpoint == "next_delivery_slot":
+                    path = self.endpoints["next_delivery_slot"] + f"0?userId={self._user_id}&addressId={self._address_id}&reasonableDeliveryTime=true"
 
                 try:
                     url = f"{BASE_URL}{path}"
