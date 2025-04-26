@@ -4,9 +4,9 @@
   "codeowners": ["@dvejsada"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/dvejsada/HA_RohlikCZ",
+  "documentation": "https://github.com/dvejsada/HA-RohlikCZ",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/dvejsada/HA_RohlikCZ/issues",
+  "issue_tracker": "https://github.com/dvejsada/HA-RohlikCZ/issues",
   "requirements": [],
-  "version": "0.1.3"
+  "version": "0.1.4"
 }
