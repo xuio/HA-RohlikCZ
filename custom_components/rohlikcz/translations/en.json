@@ -113,6 +113,15 @@
       },
       "next_order_till": {
         "name": "Delivery Slot End"
+      },
+      "express_slot": {
+        "name": "Slot Express Time"
+      },
+      "standard_slot": {
+        "name": "Slot Standard Time"
+      },
+      "eco_slot": {
+        "name": "Slot Eco Time"
       }
     }
   }

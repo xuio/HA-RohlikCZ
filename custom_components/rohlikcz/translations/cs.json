@@ -113,6 +113,15 @@
       },
       "next_order_till": {
         "name": "Konec doručení"
+      },
+      "express_slot": {
+        "name": "Doručení express"
+      },
+      "standard_slot": {
+        "name": "Doručení strandard"
+      },
+      "eco_slot": {
+        "name": "Doručení eko"
       }
     }
   }

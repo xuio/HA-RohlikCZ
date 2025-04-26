@@ -68,7 +68,7 @@ class RohlikCZAPI:
                     continue  # Already handled
 
                 if endpoint == "next_delivery_slot":
-                    self.endpoints["next_delivery_slot"] = self.endpoints["next_delivery_slot"] + f"0?userId={self._user_id}&addressId={self._address_id}&reasonableDeliveryTime=true"
+                    path = self.endpoints["next_delivery_slot"] + f"0?userId={self._user_id}&addressId={self._address_id}&reasonableDeliveryTime=true"
 
                 try:
                     url = f"{BASE_URL}{path}"
