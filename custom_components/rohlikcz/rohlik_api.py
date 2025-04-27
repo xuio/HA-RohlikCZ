@@ -124,7 +124,8 @@ class RohlikCZAPI:
             "timeslot": "/services/frontend-service/v1/timeslot-reservation",
             "last_order": "/api/v3/orders/delivered?offset=0&limit=1",
             "premium_profile": "/services/frontend-service/premium/profile",
-            "next_delivery_slot": f"/services/frontend-service/timeslots-api/"
+            "next_delivery_slot": "/services/frontend-service/timeslots-api/",
+            "delivery_announcements": "/services/frontend-service/announcements/delivery"
         }
         try:
 
