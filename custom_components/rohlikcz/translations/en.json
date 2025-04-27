@@ -122,6 +122,9 @@
       },
       "eco_slot": {
         "name": "Slot Eco Time"
+      },
+      "delivery_info": {
+        "name": "Delivery Information"
       }
     }
   }

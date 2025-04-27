@@ -122,6 +122,9 @@
       },
       "eco_slot": {
         "name": "Doručení eko"
+      },
+      "delivery_info": {
+        "name": "Informace o doručení"
       }
     }
   }
