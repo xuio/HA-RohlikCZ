@@ -6,7 +6,7 @@ import re
 import datetime
 
 from collections.abc import Mapping
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, time
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -160,13 +160,13 @@ class DeliveryInfo(BaseEntity, SensorEntity):
                 today = now.date()
 
                 # If the time has already passed today, it might refer to tomorrow
-                delivery_dt = datetime.combine(today, datetime.time(hour, minute))
+                delivery_dt = datetime.combine(today, time(hour, minute))
                 delivery_dt = delivery_dt.replace(tzinfo=prague_tz)
 
                 if delivery_dt < now:
                     # Time already passed today, assume it's for tomorrow
                     tomorrow = today + timedelta(days=1)
-                    delivery_dt = datetime.combine(tomorrow, datetime.time(hour, minute))
+                    delivery_dt = datetime.combine(tomorrow, time(hour, minute))
                     delivery_dt = delivery_dt.replace(tzinfo=prague_tz)
 
                 return delivery_dt
@@ -184,13 +184,13 @@ class DeliveryInfo(BaseEntity, SensorEntity):
                 # Use today's date with the specified time
                 today = now.date()
 
-                delivery_dt = datetime.combine(today, datetime.time(hour, minute))
+                delivery_dt = datetime.combine(today, time(hour, minute))
                 delivery_dt = delivery_dt.replace(tzinfo=prague_tz)
 
                 # If the time has already passed today, it might refer to tomorrow
                 if delivery_dt < now:
                     tomorrow = today + timedelta(days=1)
-                    delivery_dt = datetime.combine(tomorrow, datetime.time(hour, minute))
+                    delivery_dt = datetime.combine(tomorrow, time(hour, minute))
                     delivery_dt = delivery_dt.replace(tzinfo=prague_tz)
 
                 return delivery_dt
@@ -208,9 +208,8 @@ class DeliveryInfo(BaseEntity, SensorEntity):
 
             delivery_time = self.extract_delivery_datetime(delivery_info[0].get("content", ""))
 
-            if not delivery_info[0].get("additionalContent", None):
-
-                clean_text: str = delivery_info[0].get("additionalContent", None).encode('utf-8').decode('unicode_escape')
+            if delivery_info[0].get("additionalContent"):
+                clean_text: str = delivery_info[0]["additionalContent"].encode('utf-8').decode('unicode_escape')
                 additional_info = re.sub(r'<[^>]+>', '', clean_text)
             else:
                 additional_info = None
