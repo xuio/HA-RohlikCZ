@@ -208,8 +208,8 @@ class DeliveryInfo(BaseEntity, SensorEntity):
 
             delivery_time = self.extract_delivery_datetime(delivery_info[0].get("content", ""))
 
-            if delivery_info[0].get("additionalContent"):
-                clean_text: str = delivery_info[0]["additionalContent"].encode('utf-8').decode('unicode_escape')
+            if delivery_info[0].get("additionalContent", None):
+                clean_text = delivery_info[0]["additionalContent"]
                 additional_info = re.sub(r'<[^>]+>', '', clean_text)
             else:
                 additional_info = None
