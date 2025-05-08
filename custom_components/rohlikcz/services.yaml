@@ -97,9 +97,7 @@ search_and_add_to_cart:
       required: true
       example: Tomatoes
       selector:
-        number:
-          min: 1
-          mode: box
+        text:
     quantity:
       name: Quantity
       description: The quantity of the product to add
