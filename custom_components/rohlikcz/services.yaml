@@ -1,0 +1,112 @@
+# services.yaml for Rohlik integration
+add_to_cart:
+  name: Add to cart
+  description: Add a product to your Rohlik shopping cart
+  fields:
+    config_entry_id:
+      name: Account
+      description: The Rohlik account to use
+      required: true
+      selector:
+        config_entry:
+          integration: rohlikcz
+    product_id:
+      name: Product ID
+      description: The ID of the product to add to cart
+      required: true
+      example: 1234567
+      selector:
+        number:
+          min: 1
+          mode: box
+    quantity:
+      name: Quantity
+      description: The quantity of the product to add
+      required: true
+      default: 1
+      example: 1
+      selector:
+        number:
+          min: 1
+          mode: box
+
+search_product:
+  name: Search product
+  description: Search for a product by name
+  fields:
+    config_entry_id:
+      name: Account
+      description: The Rohlik account to use
+      required: true
+      selector:
+        config_entry:
+          integration: rohlikcz
+    product_name:
+      name: Product name
+      description: The name or search term for the product
+      required: true
+      example: "milk"
+      selector:
+        text:
+
+get_shopping_list:
+  name: Get shopping list
+  description: Retrieve a shopping list by its ID
+  fields:
+    config_entry_id:
+      name: Account
+      description: The Rohlik account to use
+      required: true
+      selector:
+        config_entry:
+          integration: rohlikcz
+    shopping_list_id:
+      name: Shopping list ID
+      description: The ID of the shopping list to retrieve
+      required: true
+      example: "abc123"
+      selector:
+        text:
+
+get_cart_content:
+  name: Get cart content
+  description: Retrieve a shopping cart content
+  fields:
+    config_entry_id:
+      name: Account
+      description: The Rohlik account to use
+      required: true
+      selector:
+        config_entry:
+          integration: rohlikcz
+
+search_and_add_to_cart:
+  name: Search and add to cart
+  description: Search for a product and add to a shopping cart
+  fields:
+    config_entry_id:
+      name: Account
+      description: The Rohlik account to use
+      required: true
+      selector:
+        config_entry:
+          integration: rohlikcz
+    product_name:
+      name: Product name
+      description: Name of the product to search and add
+      required: true
+      example: Tomatoes
+      selector:
+        number:
+          min: 1
+          mode: box
+    quantity:
+      name: Quantity
+      description: The quantity of the product to add
+      required: true
+      default: 1
+      example: 1
+      selector:
+        number:
+          min: 1
+          mode: box
