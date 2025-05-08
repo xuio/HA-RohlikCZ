@@ -260,8 +260,9 @@ class RohlikCZAPI:
                 return {
                     "id": search_data["data"]["productList"][0]["productId"],
                     "name": search_data["data"]["productList"][0]["productName"],
-                    "price": search_data["data"]["productList"][0]["price"]["full"],
-                    "brand": search_data["data"]["productList"][0]["brand"]
+                    "price": f"{search_data["data"]["productList"][0]["price"]["full"]} {search_data["data"]["productList"][0]["price"]["currency"]}",
+                    "brand": search_data["data"]["productList"][0]["brand"],
+                    "amount": search_data["data"]["productList"][0]["textualAmount"]
                         }
             else:
                 return None
@@ -347,6 +348,7 @@ class RohlikCZAPI:
 
             product_info = {
                 "id": product_id,
+                "cart_item_id": product_data.get("orderFieldId", ""),
                 "name": product_data.get("productName", ""),
                 "quantity": product_data.get("quantity", 0),
                 "price": product_data.get("price", 0),
