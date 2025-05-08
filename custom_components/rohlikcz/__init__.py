@@ -59,10 +59,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def register_services(hass: HomeAssistant) -> None:
     """Register services for the Rohlik integration."""
 
-    if hass.services.has_service(DOMAIN, SERVICE_ADD_TO_CART):
-        # Services already registered
-        return
-
     async def async_add_to_cart_service(call: ServiceCall) -> List[int]:
         """Add product to cart service."""
         config_entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
@@ -108,7 +104,7 @@ def register_services(hass: HomeAssistant) -> None:
 
         account = hass.data[DOMAIN][config_entry_id]
         try:
-            result = await account.search_product(product_name)
+            result = await account.search_and_add(product_name,quantity)
             return result or {}
         except Exception as err:
             _LOGGER.error(f"Failed to search for product: {err}")
@@ -155,6 +151,17 @@ def register_services(hass: HomeAssistant) -> None:
             vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
             vol.Required(ATTR_PRODUCT_ID): cv.positive_int,
             vol.Required(ATTR_QUANTITY, default=1): cv.positive_int,
+        }),
+        supports_response=True
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SEARCH_PRODUCT,
+        async_search_product_service,
+        schema=vol.Schema({
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Required(ATTR_PRODUCT_NAME): cv.string,
         }),
         supports_response=True
     )
