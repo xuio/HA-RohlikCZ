@@ -1,0 +1,9 @@
+{
+  "services": {
+    "add_to_cart": {"service": "mdi:cart-plus"},
+    "search_product": {"service": "mdi:magnify"},
+    "get_shopping_list": {"service": "mdi:clipboard-list"},
+    "get_cart_content": {"service": "mdi:cart"},
+    "search_and_add": {"service": "mdi:cart-arrow-right"}
+  }
+}
