@@ -16,7 +16,7 @@ import logging
 import requests
 from requests import Response
 from requests.exceptions import RequestException
-from typing import TypedDict
+from typing import TypedDict, Dict
 from .errors import InvalidCredentialsError, RohlikczError, AddressNotSetError
 import asyncio
 import functools
@@ -179,12 +179,12 @@ class RohlikCZAPI:
             # Step 3: Close the session
             await self._run_in_executor(session.close)
 
-    async def add_to_cart(self, product_list: list[Product]):
+    async def add_to_cart(self, product_list: list[dict]) -> dict:
         """
         Add multiple products to the shopping cart.
 
         Args:
-            product_list (list[Product]): A list of Product objects containing product_id and quantity for each product to be added to the cart
+            product_list (list[dict]): A list of objects containing product_id and quantity for each product to be added to the cart
         Returns:
             list: A list of product IDs that were successfully added to the cart
         """
@@ -215,7 +215,7 @@ class RohlikCZAPI:
                 except RequestException as err:
                     _LOGGER.error(f"Error adding {product["product_id"]} due to {err}")
 
-            return added_products
+            return {"added_products":added_products}
 
         except RequestException as err:
             _LOGGER.error(f"Request failed: {err}")
@@ -223,7 +223,7 @@ class RohlikCZAPI:
         finally:
             await self._run_in_executor(session.close)
 
-    async def search_product(self, product_name):
+    async def search_product(self, product_name: str):
         """
         Search for products by name and return the first matching product.
 
@@ -235,6 +235,7 @@ class RohlikCZAPI:
         """
 
         session = requests.Session()
+        await self.login(session)
 
         try:
             search_url = "/services/frontend-service/search-metadata"
@@ -256,7 +257,13 @@ class RohlikCZAPI:
             search_response.raise_for_status()
             search_data = search_response.json()
             if len(search_data["data"]["productList"]) > 0:
-                return search_data["data"]["productList"][0]
+                return {
+                    "id": search_data["data"]["productList"][0]["productId"],
+                    "name": search_data["data"]["productList"][0]["productName"],
+                    "price": f"{search_data["data"]["productList"][0]["price"]["full"]} {search_data["data"]["productList"][0]["price"]["currency"]}",
+                    "brand": search_data["data"]["productList"][0]["brand"],
+                    "amount": search_data["data"]["productList"][0]["textualAmount"]
+                        }
             else:
                 return None
 
@@ -266,7 +273,7 @@ class RohlikCZAPI:
         finally:
             await self._run_in_executor(session.close)
 
-    async def get_shopping_list(self, shopping_list_id=None):
+    async def get_shopping_list(self, shopping_list_id=None) -> dict:
         """
         Retrieve a shopping list by its ID.
 
@@ -292,10 +299,63 @@ class RohlikCZAPI:
             )
             search_response.raise_for_status()
             search_data = search_response.json()
-            return search_data
+            return {"name": search_data["name"], "products_in_list": search_data["products"]}
 
         except RequestException as err:
             _LOGGER.error(f"Request failed: {err}")
             raise ValueError("Request failed")
         finally:
             await self._run_in_executor(session.close)
+
+    async def get_cart_content(self) -> Dict:
+        """
+        Fetches the current cart contents
+
+        :return: Dictionary with cart content
+        """
+
+        cart_url = "/services/frontend-service/v2/cart-review/check-cart"
+
+        session = requests.Session()
+
+        try:
+            await self.login(session)
+            cart_response = await self._run_in_executor(
+                session.get,
+                f"{BASE_URL}{cart_url}",
+            )
+            cart_response.raise_for_status()
+            cart_content = cart_response.json()
+
+        except RequestException as err:
+            _LOGGER.error(f"Request failed: {err}")
+            raise ValueError("Request failed")
+        finally:
+            await self._run_in_executor(session.close)
+
+        data = cart_content.get("data", {})
+
+        # Extract the main cart information
+        cart_info = {
+            "total_price": data.get("totalPrice", 0),
+            "total_items": len(data.get("items", {})),
+            "can_make_order": data.get("submitConditionPassed", False),
+            "products": []
+        }
+
+        # Process each product item
+        for product_id, product_data in data.get("items", {}).items():
+
+            product_info = {
+                "id": product_id,
+                "cart_item_id": product_data.get("orderFieldId", ""),
+                "name": product_data.get("productName", ""),
+                "quantity": product_data.get("quantity", 0),
+                "price": product_data.get("price", 0),
+                "category_name": product_data.get("primaryCategoryName", ""),
+                "brand": product_data.get("brand", "")
+            }
+
+            cart_info["products"].append(product_info)
+
+        return cart_info

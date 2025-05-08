@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any, cast, List, Optional, Dict
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
@@ -32,6 +32,11 @@ class RohlikAccount:
         """Provides name for account."""
         return self.data["login"]["data"]["user"]["name"]
 
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID for this account."""
+        return self.data["login"]["data"]["user"]["id"]
+
     async def async_update(self) -> None:
         """ Updates the data from API."""
 
@@ -52,4 +57,34 @@ class RohlikAccount:
         for callback in self._callbacks:
             callback()
 
+    # New service methods
+    async def add_to_cart(self, product_id: int, quantity: int) -> Dict:
+        """Add a product to the shopping cart."""
+        product_list = [{"product_id": product_id, "quantity": quantity}]
+        result = await self._rohlik_api.add_to_cart(product_list)
+        return result
 
+    async def search_product(self, product_name: str) -> Optional[Dict[str, Any]]:
+        """Search for a product by name."""
+        result = await self._rohlik_api.search_product(product_name)
+        return result
+
+    async def get_shopping_list(self, shopping_list_id: str) -> Dict[str, Any]:
+        """Get a shopping list by ID."""
+        result = await self._rohlik_api.get_shopping_list(shopping_list_id)
+        return result
+
+    async def get_cart_content(self) -> Dict:
+        """ Retrieves cart content. """
+        result = await self._rohlik_api.get_cart_content()
+        return result
+
+    async def search_and_add(self, product_name: str, quantity: int) -> Dict | None:
+        """ Searches for product by name and adds to cart"""
+        searched_product = await self.search_product(product_name)
+        added_product: dict = await self.add_to_cart(searched_product["id"], quantity)
+
+        if added_product:
+            return {"added_to_cart": searched_product}
+        else:
+            return None
