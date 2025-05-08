@@ -272,7 +272,7 @@ class RohlikCZAPI:
         finally:
             await self._run_in_executor(session.close)
 
-    async def get_shopping_list(self, shopping_list_id=None):
+    async def get_shopping_list(self, shopping_list_id=None) -> dict:
         """
         Retrieve a shopping list by its ID.
 
@@ -298,7 +298,7 @@ class RohlikCZAPI:
             )
             search_response.raise_for_status()
             search_data = search_response.json()
-            return search_data["products"]
+            return {"name": search_data["name"], "products_in_list": search_data["products"]}
 
         except RequestException as err:
             _LOGGER.error(f"Request failed: {err}")
