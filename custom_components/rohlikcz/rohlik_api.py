@@ -179,7 +179,7 @@ class RohlikCZAPI:
             # Step 3: Close the session
             await self._run_in_executor(session.close)
 
-    async def add_to_cart(self, product_list: list[dict]):
+    async def add_to_cart(self, product_list: list[dict]) -> dict:
         """
         Add multiple products to the shopping cart.
 
