@@ -1,22 +1,47 @@
 """Rohlík CZ custom component."""
 from __future__ import annotations
 
+import logging
+import voluptuous as vol
+from typing import Any, Dict, List
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
+import homeassistant.helpers.config_validation as cv
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
 from .hub import RohlikAccount
 
+_LOGGER = logging.getLogger(__name__)
+
 PLATFORMS: list[str] = ["sensor", "binary_sensor"]
+
+# Define service constants
+ATTR_CONFIG_ENTRY_ID = "config_entry_id"
+ATTR_PRODUCT_ID = "product_id"
+ATTR_QUANTITY = "quantity"
+ATTR_PRODUCT_NAME = "product_name"
+ATTR_SHOPPING_LIST_ID = "shopping_list_id"
+
+# Define service names
+SERVICE_ADD_TO_CART = "add_to_cart"
+SERVICE_SEARCH_PRODUCT = "search_product"
+SERVICE_GET_SHOPPING_LIST = "get_shopping_list"
+SERVICE_GET_CART_CONTENT = "get_cart_content"
+SERVICE_SEARCH_AND_ADD_PRODUCT = "search_and_add_to_cart"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Rohlik integration from a config entry flow."""
-    account = RohlikAccount(hass, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD])  # type: ignore[Any]
+    account = RohlikAccount(hass, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD])
     await account.async_update()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = account  # type: ignore[Any]
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = account
+
+    # Register services
+    register_services(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -24,11 +49,145 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    # This is called when an entry/configured device is to be removed. The class
-    # needs to unload itself, and remove callbacks. See the classes for further
-    # details
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)  # type: ignore[Any]
+        hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+
+def register_services(hass: HomeAssistant) -> None:
+    """Register services for the Rohlik integration."""
+
+    if hass.services.has_service(DOMAIN, SERVICE_ADD_TO_CART):
+        # Services already registered
+        return
+
+    async def async_add_to_cart_service(call: ServiceCall) -> List[int]:
+        """Add product to cart service."""
+        config_entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
+        product_id = call.data[ATTR_PRODUCT_ID]
+        quantity = call.data[ATTR_QUANTITY]
+
+        if config_entry_id not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Config entry {config_entry_id} not found")
+
+        account = hass.data[DOMAIN][config_entry_id]
+        try:
+            result = await account.add_to_cart(product_id, quantity)
+            _LOGGER.info(f"Product added to cart for {account.name}: {result}")
+            return result
+        except Exception as err:
+            _LOGGER.error(f"Failed to add product to cart: {err}")
+            raise HomeAssistantError(f"Failed to add product to cart: {err}")
+
+    async def async_search_product_service(call: ServiceCall) -> Dict[str, Any]:
+        """Search for a product and return results."""
+        config_entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
+        product_name = call.data[ATTR_PRODUCT_NAME]
+
+        if config_entry_id not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Config entry {config_entry_id} not found")
+
+        account = hass.data[DOMAIN][config_entry_id]
+        try:
+            result = await account.search_product(product_name)
+            return result or {}
+        except Exception as err:
+            _LOGGER.error(f"Failed to search for product: {err}")
+            raise HomeAssistantError(f"Failed to search for product: {err}")
+
+    async def async_search_and_add_product_service(call: ServiceCall) -> Dict[str, Any]:
+        """Search for a product and return results."""
+        config_entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
+        product_name = call.data[ATTR_PRODUCT_NAME]
+        quantity = call.data[ATTR_QUANTITY]
+
+        if config_entry_id not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Config entry {config_entry_id} not found")
+
+        account = hass.data[DOMAIN][config_entry_id]
+        try:
+            result = await account.search_product(product_name)
+            return result or {}
+        except Exception as err:
+            _LOGGER.error(f"Failed to search for product: {err}")
+            raise HomeAssistantError(f"Failed to search for product: {err}")
+
+
+    async def async_get_shopping_list_service(call: ServiceCall) -> Dict[str, Any]:
+        """Get shopping list by ID."""
+        config_entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
+        shopping_list_id = call.data[ATTR_SHOPPING_LIST_ID]
+
+        if config_entry_id not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Config entry {config_entry_id} not found")
+
+        account = hass.data[DOMAIN][config_entry_id]
+        try:
+            result = await account.get_shopping_list(shopping_list_id)
+            return result
+        except Exception as err:
+            _LOGGER.error(f"Failed to get shopping list: {err}")
+            raise HomeAssistantError(f"Failed to get shopping list: {err}")
+
+    async def async_get_cart_service(call: ServiceCall) -> Dict[str, Any]:
+        """Get shopping cart content."""
+        config_entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
+
+        if config_entry_id not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Config entry {config_entry_id} not found")
+
+        account = hass.data[DOMAIN][config_entry_id]
+        try:
+            result = await account.get_cart_content()
+            return result
+        except Exception as err:
+            _LOGGER.error(f"Failed to get cart content: {err}")
+            raise HomeAssistantError(f"Failed to get get cart content: {err}")
+
+    # Register the services
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_TO_CART,
+        async_add_to_cart_service,
+        schema=vol.Schema({
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Required(ATTR_PRODUCT_ID): cv.positive_int,
+            vol.Required(ATTR_QUANTITY, default=1): cv.positive_int,
+        }),
+        supports_response=True
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SEARCH_AND_ADD_PRODUCT,
+        async_search_and_add_product_service,
+        schema=vol.Schema({
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Required(ATTR_PRODUCT_NAME): cv.string,
+            vol.Required(ATTR_QUANTITY): cv.positive_int,
+        }),
+        supports_response=True
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_SHOPPING_LIST,
+        async_get_shopping_list_service,
+        schema=vol.Schema({
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+            vol.Required(ATTR_SHOPPING_LIST_ID): cv.string,
+        }),
+        supports_response=True
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_CART_CONTENT,
+        async_get_cart_service,
+        schema=vol.Schema({
+            vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
+        }),
+        supports_response=True
+    )
