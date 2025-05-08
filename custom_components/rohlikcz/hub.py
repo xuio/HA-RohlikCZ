@@ -79,9 +79,18 @@ class RohlikAccount:
         result = await self._rohlik_api.get_cart_content()
         return result
 
-    async def search_and_add(self, product_name: str, quantity: int) -> Dict:
+    async def search_and_add(self, product_name: str, quantity: int) -> Dict | None:
         """ Searches for product by name and adds to cart"""
         searched_product = await self.search_product(product_name)
         added_product: dict = await self.add_to_cart(searched_product["id"], quantity)
 
-        return added_product
+        if added_product:
+            return {"added_to_cart": {
+                "name": searched_product["productName"],
+                "brand": searched_product["brand"],
+                "price": f"{searched_product["price"]["full"]} {searched_product["price"]["currency"]}",
+                "amount": searched_product["textualAmount"]
+                }
+            }
+        else:
+            return None
