@@ -17,6 +17,7 @@ class RohlikAccount:
         self._hass = hass
         self._username: str = username
         self._password: str = password
+        self._rohlik_api = RohlikCZAPI(self._username, self._password)
         self.data: dict = {}
         self._callbacks: set[Callable[[], None]] = set()
 
@@ -33,8 +34,8 @@ class RohlikAccount:
 
     async def async_update(self) -> None:
         """ Updates the data from API."""
-        rohlik_session = RohlikCZAPI(self._username, self._password)
-        self.data = await rohlik_session.get_data()
+
+        self.data = await self._rohlik_api.get_data()
 
         await self.publish_updates()
 
