@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 import voluptuous as vol
 
 from .const import DOMAIN
+from .errors import InvalidCredentialsError
 from .rohlik_api import RohlikCZAPI
 
 
@@ -36,7 +37,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> config_entries.FlowResult:
 
         data_schema: dict[Any, Any] = {
-            vol.Required(CONF_EMAIL, default="email"): str,
+            vol.Required(CONF_EMAIL, default="e-mail"): str,
             vol.Required(CONF_PASSWORD, default="password"): str
         }
 
@@ -48,6 +49,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 info, data = await validate_input(self.hass, user_input)
                 return self.async_create_entry(title=info, data=data)
+
+            except InvalidCredentialsError:
+                errors["base"] = "Invalid credentials provided"
 
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unknown exception")

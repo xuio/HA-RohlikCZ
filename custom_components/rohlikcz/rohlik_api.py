@@ -14,8 +14,10 @@ Example:
 
 import logging
 import requests
+from requests import Response
 from requests.exceptions import RequestException
-from typing import TypedDict, List, Optional, Union, Dict, Any
+from typing import TypedDict
+from .errors import InvalidCredentialsError, RohlikczError, AddressNotSetError
 import asyncio
 import functools
 
@@ -97,13 +99,35 @@ class RohlikCZAPI:
         login_data = {"email": self._user, "password": self._pass, "name": ""}
         login_url = f"{BASE_URL}/services/frontend-service/login"
 
-        login_response = await self._run_in_executor(
-            session.post,
-            login_url,
-            json=login_data
-        )
-        login_response.raise_for_status()
-        return login_response.json()
+        try:
+            login_response: Response = await self._run_in_executor(
+                session.post,
+                login_url,
+                json=login_data
+            )
+
+            login_response: dict = login_response.json()
+
+            if login_response["status"] != 200:
+                if login_response["status"] == 401:
+                    raise InvalidCredentialsError(login_response["messages"][0]["content"])
+                else:
+                    raise RohlikczError(f"Unknown error occurred during login: {login_response["messages"][0]["content"]}")
+
+            if not self._user_id:
+                self._user_id = login_response.get("data", {}).get("user", {}).get("id", None)
+
+            if not self._address_id:
+                try:
+                    self._address_id = login_response.get("data", {}).get("address", {}).get("id", None)
+                except AttributeError as err:
+                    raise AddressNotSetError(f"Address is not set in the account: {err}")
+
+            return login_response
+
+        except RequestException:
+            _LOGGER.error("Cannot connect to website! Check your internet connection and try again")
+
 
     async def get_data(self):
         """
@@ -127,13 +151,10 @@ class RohlikCZAPI:
             "next_delivery_slot": "/services/frontend-service/timeslots-api/",
             "delivery_announcements": "/services/frontend-service/announcements/delivery"
         }
+
+        result["login"] = await self.login(session)
+
         try:
-
-            result["login"] = await self.login(session)
-            self._user_id = result["login"].get("data", {}).get("user", {}).get("id", None)
-            self._address_id = result["login"].get("data", {}).get("address", {}).get("id", None)
-
-
             # Step 2: Get data from all other endpoints
             for endpoint, path in self.endpoints.items():
 
