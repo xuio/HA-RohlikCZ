@@ -58,7 +58,7 @@ class RohlikAccount:
             callback()
 
     # New service methods
-    async def add_to_cart(self, product_id: int, quantity: int):
+    async def add_to_cart(self, product_id: int, quantity: int) -> Dict:
         """Add a product to the shopping cart."""
         product_list = [{"product_id": product_id, "quantity": quantity}]
         result = await self._rohlik_api.add_to_cart(product_list)
@@ -80,7 +80,8 @@ class RohlikAccount:
         return result
 
     async def search_and_add(self, product_name: str, quantity: int) -> Dict:
+        """ Searches for product by name and adds to cart"""
         searched_product = await self.search_product(product_name)
-        added_product = await self.add_to_cart(searched_product["id"], quantity)
+        added_product: dict = await self.add_to_cart(searched_product["id"], quantity)
 
-        return {"added_product": added_product}
+        return added_product
