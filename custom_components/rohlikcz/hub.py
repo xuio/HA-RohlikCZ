@@ -85,12 +85,6 @@ class RohlikAccount:
         added_product: dict = await self.add_to_cart(searched_product["id"], quantity)
 
         if added_product:
-            return {"added_to_cart": {
-                "name": searched_product["productName"],
-                "brand": searched_product["brand"],
-                "price": f"{searched_product["price"]["full"]} {searched_product["price"]["currency"]}",
-                "amount": searched_product["textualAmount"]
-                }
-            }
+            return {"added_to_cart": searched_product}
         else:
             return None
