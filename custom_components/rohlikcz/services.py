@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from typing import List, Dict, Any
 
+import logging
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
-from custom_components.rohlikcz import ATTR_CONFIG_ENTRY_ID, ATTR_PRODUCT_ID, ATTR_QUANTITY, DOMAIN, _LOGGER, \
-    ATTR_PRODUCT_NAME, ATTR_SHOPPING_LIST_ID, SERVICE_ADD_TO_CART, SERVICE_SEARCH_PRODUCT, \
-    SERVICE_SEARCH_AND_ADD_PRODUCT, SERVICE_GET_SHOPPING_LIST, SERVICE_GET_CART_CONTENT
+from .const import DOMAIN, ATTR_CONFIG_ENTRY_ID, ATTR_PRODUCT_ID, ATTR_QUANTITY, ATTR_PRODUCT_NAME, \
+    ATTR_SHOPPING_LIST_ID, SERVICE_ADD_TO_CART, SERVICE_SEARCH_PRODUCT, SERVICE_GET_SHOPPING_LIST, \
+    SERVICE_GET_CART_CONTENT, SERVICE_SEARCH_AND_ADD_PRODUCT
 
+_LOGGER = logging.getLogger(__name__)
 
 def register_services(hass: HomeAssistant) -> None:
     """Register services for the Rohlik integration."""
