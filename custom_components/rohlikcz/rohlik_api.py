@@ -18,7 +18,7 @@ import requests
 from requests import Response
 from requests.exceptions import RequestException
 from typing import TypedDict, Dict
-from .errors import InvalidCredentialsError, RohlikczError
+from .errors import InvalidCredentialsError, RohlikczError, APIRequestFailedError
 import asyncio
 import functools
 
@@ -150,8 +150,8 @@ class RohlikCZAPI:
 
             return login_response
 
-        except RequestException:
-            _LOGGER.error("Cannot connect to website! Check your internet connection and try again")
+        except RequestException as err:
+            raise APIRequestFailedError(f"Cannot connect to website! Check your internet connection and try again: {err}")
 
 
     async def get_data(self):
@@ -202,7 +202,7 @@ class RohlikCZAPI:
             return result
 
         except RequestException as err:
-            raise RohlikczError(f"Getting data failed: {err}")
+            raise APIRequestFailedError(f"Cannot connect to website! Check your internet connection and try again: {err}")
         finally:
             # Step 3: Close the session
             await self._run_in_executor(session.close)
