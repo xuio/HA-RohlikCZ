@@ -21,6 +21,12 @@ class RohlikAccount:
         self.data: dict = {}
         self._callbacks: set[Callable[[], None]] = set()
 
+    @property
+    def has_address(self):
+        if self.data["next_delivery_slot"]:
+            return True
+        else:
+            return False
 
     @property
     def device_info(self) -> DeviceInfo:

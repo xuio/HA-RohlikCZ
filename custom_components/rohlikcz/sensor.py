@@ -9,14 +9,11 @@ from collections.abc import Mapping
 from datetime import timedelta, datetime, time
 from typing import Any
 from zoneinfo import ZoneInfo
-
-from homeassistant.helpers.entity import Entity
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
 from .const import DOMAIN, ICON_UPDATE, ICON_CREDIT, ICON_NO_LIMIT, ICON_FREE_EXPRESS, ICON_DELIVERY, ICON_BAGS, \
     ICON_CART, ICON_ACCOUNT, ICON_EMAIL, ICON_PHONE, ICON_PREMIUM_DAYS, ICON_LAST_ORDER, ICON_NEXT_ORDER_SINCE, \
     ICON_NEXT_ORDER_TILL, ICON_INFO
@@ -33,31 +30,34 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback
 ) -> None:
     """Add sensors for passed config_entry in HA."""
-    rohlik_account: RohlikAccount = hass.data[DOMAIN][config_entry.entry_id]  # type: ignore[Any]
+    rohlik_hub: RohlikAccount = hass.data[DOMAIN][config_entry.entry_id]  # type: ignore[Any]
 
     entities = [
-        FirstDeliverySensor(rohlik_account),
-        AccountIDSensor(rohlik_account),
-        EmailSensor(rohlik_account),
-        PhoneSensor(rohlik_account),
-        NoLimitOrders(rohlik_account),
-        FreeExpressOrders(rohlik_account),
-        CreditAmount(rohlik_account),
-        BagsAmountSensor(rohlik_account),
-        CartPriceSensor(rohlik_account),
-        UpdateSensor(rohlik_account),
-        LastOrder(rohlik_account),
-        NextOrderTill(rohlik_account),
-        NextOrderSince(rohlik_account),
-        FirstExpressSlot(rohlik_account),
-        FirstStandardSlot(rohlik_account),
-        FirstEcoSlot(rohlik_account),
-        DeliveryInfo(rohlik_account)
+        FirstDeliverySensor(rohlik_hub),
+        AccountIDSensor(rohlik_hub),
+        EmailSensor(rohlik_hub),
+        PhoneSensor(rohlik_hub),
+        NoLimitOrders(rohlik_hub),
+        FreeExpressOrders(rohlik_hub),
+        CreditAmount(rohlik_hub),
+        BagsAmountSensor(rohlik_hub),
+        CartPriceSensor(rohlik_hub),
+        UpdateSensor(rohlik_hub),
+        LastOrder(rohlik_hub),
+        NextOrderTill(rohlik_hub),
+        NextOrderSince(rohlik_hub),
+        DeliveryInfo(rohlik_hub)
     ]
 
+    if rohlik_hub.has_address:
+        entities.append(FirstExpressSlot(rohlik_hub))
+        entities.append(FirstStandardSlot(rohlik_hub))
+        entities.append(FirstEcoSlot(rohlik_hub))
+
+
     # Only add premium days remaining if the user is premium
-    if rohlik_account.data.get('login', {}).get('data', {}).get('user', {}).get('premium', {}).get('active', False):
-        entities.append(PremiumDaysRemainingSensor(rohlik_account))
+    if rohlik_hub.data.get('login', {}).get('data', {}).get('user', {}).get('premium', {}).get('active', False):
+        entities.append(PremiumDaysRemainingSensor(rohlik_hub))
 
     async_add_entities(entities)
 
