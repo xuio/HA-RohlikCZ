@@ -9,7 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN, ATTR_CONFIG_ENTRY_ID, ATTR_PRODUCT_ID, ATTR_QUANTITY, ATTR_PRODUCT_NAME, \
-    ATTR_SHOPPING_LIST_ID, SERVICE_ADD_TO_CART, SERVICE_SEARCH_PRODUCT, SERVICE_GET_SHOPPING_LIST, \
+    ATTR_SHOPPING_LIST_ID, ATTR_LIMIT, ATTR_FAVOURITE_ONLY, SERVICE_ADD_TO_CART, SERVICE_SEARCH_PRODUCT, SERVICE_GET_SHOPPING_LIST, \
     SERVICE_GET_CART_CONTENT, SERVICE_SEARCH_AND_ADD_PRODUCT
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,13 +39,22 @@ def register_services(hass: HomeAssistant) -> None:
         """Search for a product and return results."""
         config_entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
         product_name = call.data[ATTR_PRODUCT_NAME]
+        limit = call.data.get(ATTR_LIMIT, None)
+        favourite = call.data.get(ATTR_FAVOURITE_ONLY, None)
 
         if config_entry_id not in hass.data[DOMAIN]:
             raise HomeAssistantError(f"Config entry {config_entry_id} not found")
 
         account = hass.data[DOMAIN][config_entry_id]
         try:
-            result = await account.search_product(product_name)
+            # Create kwargs dictionary with only parameters that are not None
+            kwargs = {}
+            if limit:
+                kwargs[ATTR_LIMIT] = limit
+            if favourite:
+                kwargs[ATTR_FAVOURITE_ONLY] = favourite
+
+            result = await account.search_product(product_name, **kwargs)
             return result or {}
         except Exception as err:
             _LOGGER.error(f"Failed to search for product: {err}")
@@ -56,13 +65,20 @@ def register_services(hass: HomeAssistant) -> None:
         config_entry_id = call.data[ATTR_CONFIG_ENTRY_ID]
         product_name = call.data[ATTR_PRODUCT_NAME]
         quantity = call.data[ATTR_QUANTITY]
+        favourite = call.data.get(ATTR_FAVOURITE_ONLY, None)
 
         if config_entry_id not in hass.data[DOMAIN]:
             raise HomeAssistantError(f"Config entry {config_entry_id} not found")
 
         account = hass.data[DOMAIN][config_entry_id]
         try:
-            result = await account.search_and_add(product_name,quantity)
+            # Create kwargs dictionary with only parameters that are not None
+            kwargs = {}
+            if favourite:
+                kwargs['favourite'] = favourite
+
+            # Unpack kwargs in the function call
+            result = await account.search_and_add(product_name, quantity, **kwargs)
             return result or {}
         except Exception as err:
             _LOGGER.error(f"Failed to search for product: {err}")
@@ -120,6 +136,8 @@ def register_services(hass: HomeAssistant) -> None:
         schema=vol.Schema({
             vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
             vol.Required(ATTR_PRODUCT_NAME): cv.string,
+            vol.Optional(ATTR_LIMIT, default=10): cv.positive_int,
+            vol.Optional(ATTR_FAVOURITE_ONLY, default=False): cv.boolean
         }),
         supports_response=True
     )
@@ -132,6 +150,7 @@ def register_services(hass: HomeAssistant) -> None:
             vol.Required(ATTR_CONFIG_ENTRY_ID): cv.string,
             vol.Required(ATTR_PRODUCT_NAME): cv.string,
             vol.Required(ATTR_QUANTITY): cv.positive_int,
+            vol.Optional(ATTR_FAVOURITE_ONLY, default=False): cv.boolean
         }),
         supports_response=True
     )

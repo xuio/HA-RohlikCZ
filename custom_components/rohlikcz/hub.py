@@ -70,9 +70,9 @@ class RohlikAccount:
         result = await self._rohlik_api.add_to_cart(product_list)
         return result
 
-    async def search_product(self, product_name: str) -> Optional[Dict[str, Any]]:
+    async def search_product(self, product_name: str, limit: int = 10, favourite: bool = False) -> Optional[Dict[str, Any]]:
         """Search for a product by name."""
-        result = await self._rohlik_api.search_product(product_name)
+        result = await self._rohlik_api.search_product(product_name, limit, favourite)
         return result
 
     async def get_shopping_list(self, shopping_list_id: str) -> Dict[str, Any]:
@@ -85,12 +85,14 @@ class RohlikAccount:
         result = await self._rohlik_api.get_cart_content()
         return result
 
-    async def search_and_add(self, product_name: str, quantity: int) -> Dict | None:
+    async def search_and_add(self, product_name: str, quantity: int, favourite: bool = False) -> Dict | None:
         """ Searches for product by name and adds to cart"""
-        searched_product = await self.search_product(product_name)
-        added_product: dict = await self.add_to_cart(searched_product["id"], quantity)
 
-        if added_product:
-            return {"added_to_cart": searched_product}
+        searched_product = await self.search_product(product_name, limit = 5, favourite=favourite)
+
+        if searched_product:
+            await self.add_to_cart(searched_product["search_results"][0]["id"], quantity)
+            return {"success": True, "message": "", "added_to_cart": [searched_product["search_results"][0]]}
+
         else:
-            return None
+            return {"success": False, "message": f'No product matched when searching for "{product_name}"{' in favourites' if favourite else ''}.', "added_to_cart": []}

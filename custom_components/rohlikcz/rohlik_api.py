@@ -251,12 +251,14 @@ class RohlikCZAPI:
         finally:
             await self._run_in_executor(session.close)
 
-    async def search_product(self, product_name: str):
+    async def search_product(self, product_name: str, limit: int = 10, favourite: bool = False):
         """
         Search for products by name and return the first matching product.
 
         Args:
             product_name (str): The name or search term for the product
+            limit (int): Number of products returned
+            favourite (bool): Whether only favourite items shall be returned
 
         Returns:
             dict: The first matching product's details, or None if no products found
@@ -266,38 +268,59 @@ class RohlikCZAPI:
         await self.login(session)
 
         try:
+            # Set request data
             search_url = "/services/frontend-service/search-metadata"
-
             search_payload = {
                 "search": product_name,
                 "offset": 0,
-                "limit": 1,
+                "limit": limit + 5,
                 "companyId" : 1,
                 "filterData": {"filters": []},
                 "canCorrect": True
             }
+
+            # Login to account to return user-specific data
             await self.login(session)
+
+            # Perform API request
             search_response = await self._run_in_executor(
                 session.get,
                 f"{BASE_URL}{search_url}",
                 params=search_payload
             )
             search_response.raise_for_status()
-            search_data = search_response.json()
-            if len(search_data["data"]["productList"]) > 0:
-                return {
-                    "id": search_data["data"]["productList"][0]["productId"],
-                    "name": search_data["data"]["productList"][0]["productName"],
-                    "price": f"{search_data["data"]["productList"][0]["price"]["full"]} {search_data["data"]["productList"][0]["price"]["currency"]}",
-                    "brand": search_data["data"]["productList"][0]["brand"],
-                    "amount": search_data["data"]["productList"][0]["textualAmount"]
-                        }
+            search_data:dict = search_response.json()
+            found_products:list = search_data["data"]["productList"]
+
+            # Remove sponsored content
+            found_products = [p for p in found_products if
+                              not any(badge.get("slug") == "promoted" for badge in p.get("badge", []))]
+
+            # Keep only favourites if requested
+            if favourite:
+                found_products = [p for p in found_products if p.get("favourite", False)]
+
+            # Keep only results up to the specified limit
+            if len(found_products) > limit:
+                found_products = found_products[:limit]
+
+            if len(found_products) > 0:
+                search_results = {"search_results": []}
+                for i in range(len(found_products)):
+                    search_results["search_results"].append({
+                        "id": found_products[i]["productId"],
+                        "name": found_products[i]["productName"],
+                        "price": f"{found_products[i]["price"]["full"]} {found_products[i]["price"]["currency"]}",
+                        "brand": found_products[i]["brand"],
+                        "amount": found_products[i]["textualAmount"]
+                            })
+                return search_results
             else:
                 return None
 
         except RequestException as err:
             _LOGGER.error(f"Request failed: {err}")
-            raise ValueError("Request failed")
+            return None
         finally:
             await self._run_in_executor(session.close)
 
