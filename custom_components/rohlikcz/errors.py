@@ -15,3 +15,7 @@ class InvalidCredentialsError(RohlikczError):
 
 class AddressNotSetError(RohlikczError):
     """ No delivery address set in user account. """
+
+
+class APIRequestFailedError(RohlikczError):
+    """ No delivery address set in user account. """
