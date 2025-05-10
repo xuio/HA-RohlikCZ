@@ -40,6 +40,8 @@ ATTR_PRODUCT_ID = "product_id"
 ATTR_QUANTITY = "quantity"
 ATTR_PRODUCT_NAME = "product_name"
 ATTR_SHOPPING_LIST_ID = "shopping_list_id"
+ATTR_LIMIT = "limit"
+ATTR_FAVOURITE_ONLY = "favourite"
 
 """ Service names """
 SERVICE_ADD_TO_CART = "add_to_cart"
