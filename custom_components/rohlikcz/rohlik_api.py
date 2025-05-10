@@ -14,16 +14,41 @@ Example:
 
 import logging
 import requests
+
 from requests import Response
 from requests.exceptions import RequestException
 from typing import TypedDict, Dict
-from .errors import InvalidCredentialsError, RohlikczError, AddressNotSetError
+from .errors import InvalidCredentialsError, RohlikczError
 import asyncio
 import functools
 
 _LOGGER = logging.getLogger(__name__)
 
 BASE_URL = "https://www.rohlik.cz"
+
+
+def mask_data(input_dict):
+    """ Takes a dictionary and replaces all non-null values with "XXXXXXX". Null values (None) remain unchanged."""
+    if not isinstance(input_dict, dict):
+        return input_dict
+
+    result = {}
+    for key, value in input_dict.items():
+        if value is None:
+            result[key] = None
+        elif isinstance(value, dict):
+            # Recursively mask nested dictionaries
+            result[key] = mask_data(value)
+        elif isinstance(value, list):
+            # Handle lists by masking each element if needed
+            result[key] = [mask_data(item) if isinstance(item, dict)
+                           else "XXXXXXX" if item is not None else None
+                           for item in value]
+        else:
+            result[key] = "XXXXXXX"
+
+    return result
+
 
 class Product(TypedDict):
     """
@@ -120,8 +145,8 @@ class RohlikCZAPI:
             if not self._address_id:
                 try:
                     self._address_id = login_response.get("data", {}).get("address", {}).get("id", None)
-                except AttributeError as err:
-                    raise AddressNotSetError(f"Address is not set in the account: {err}")
+                except AttributeError:
+                    _LOGGER.error(f"Address cannot be retrieved from login data. No delivery time sensors will be added. Login response: {mask_data(login_response)}")
 
             return login_response
 
@@ -159,7 +184,11 @@ class RohlikCZAPI:
             for endpoint, path in self.endpoints.items():
 
                 if endpoint == "next_delivery_slot":
-                    path = self.endpoints["next_delivery_slot"] + f"0?userId={self._user_id}&addressId={self._address_id}&reasonableDeliveryTime=true"
+                    if self._address_id:
+                        path = self.endpoints["next_delivery_slot"] + f"0?userId={self._user_id}&addressId={self._address_id}&reasonableDeliveryTime=true"
+                    else:
+                        result[endpoint] = None
+                        continue
 
                 try:
                     url = f"{BASE_URL}{path}"
@@ -173,8 +202,7 @@ class RohlikCZAPI:
             return result
 
         except RequestException as err:
-            _LOGGER.error(f"Login failed: {err}")
-            raise ValueError("Login failed")
+            raise RohlikczError(f"Getting data failed: {err}")
         finally:
             # Step 3: Close the session
             await self._run_in_executor(session.close)
