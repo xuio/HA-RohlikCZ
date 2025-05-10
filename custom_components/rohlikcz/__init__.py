@@ -18,10 +18,10 @@ PLATFORMS: list[str] = ["sensor", "binary_sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Rohlik integration from a config entry flow."""
-    account = RohlikAccount(hass, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD])
-    await account.async_update()
+    rohlik_hub = RohlikAccount(hass, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD])
+    await rohlik_hub.async_update()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = account
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = rohlik_hub
 
     # Register services
     register_services(hass)
