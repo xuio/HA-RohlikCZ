@@ -48,6 +48,22 @@ search_product:
       example: "milk"
       selector:
         text:
+    limit:
+      name: Search limit
+      description: Number of products to return
+      required: false
+      example: 5
+      selector:
+        number:
+          min: 1
+          mode: box
+    favourite:
+      name: Favourite only
+      description: Whether to search only in favourite items
+      required: false
+      example: false
+      selector:
+        boolean:
 
 get_shopping_list:
   name: Get shopping list
@@ -108,3 +124,10 @@ search_and_add_to_cart:
         number:
           min: 1
           mode: box
+    favourite:
+      name: Favourite only
+      description: Whether to search only in favourite items
+      required: false
+      example: false
+      selector:
+        boolean:
