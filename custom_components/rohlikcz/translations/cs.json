@@ -126,6 +126,11 @@
       "delivery_info": {
         "name": "Informace o doručení"
       }
+    },
+    "todo": {
+      "shopping_cart": {
+        "name": "Nákupní košík"
+      }
     }
   }
 }

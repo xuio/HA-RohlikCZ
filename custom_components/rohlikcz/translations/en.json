@@ -126,6 +126,11 @@
       "delivery_info": {
         "name": "Delivery Information"
       }
+    },
+    "todo": {
+      "shopping_cart": {
+        "name": "Shopping Cart"
+      }
     }
   }
 }
