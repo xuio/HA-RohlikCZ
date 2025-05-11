@@ -168,7 +168,6 @@ class RohlikCZAPI:
             "delivery": "/services/frontend-service/first-delivery?reasonableDeliveryTime=true",
             "next_order": "/api/v3/orders/upcoming",
             "announcements": "/services/frontend-service/announcements/top",
-            "cart": "/services/frontend-service/v2/cart",
             "bags": "/api/v1/reusable-bags/user-info",
             "timeslot": "/services/frontend-service/v1/timeslot-reservation",
             "last_order": "/api/v3/orders/delivered?offset=0&limit=1",
@@ -198,6 +197,13 @@ class RohlikCZAPI:
                 except RequestException as err:
                     _LOGGER.error(f"Error fetching {endpoint}: {err}")
                     result[endpoint] = None
+
+            try:
+                result["cart"] = await self.get_cart_content(logged_in=True, session=session)
+
+            except RequestException as err:
+                _LOGGER.error(f"Error fetching cart: {err}")
+                result["cart"] = None
 
             return result
 
@@ -328,10 +334,10 @@ class RohlikCZAPI:
         """
         Retrieve a shopping list by its ID.
 
-        Args:
+        :param:
             shopping_list_id (str, optional): The ID of the shopping list to retrieve. Must be provided.
 
-        Returns:
+        :return:
             dict: The shopping list details
         """
 
@@ -358,19 +364,19 @@ class RohlikCZAPI:
         finally:
             await self._run_in_executor(session.close)
 
-    async def get_cart_content(self) -> Dict:
+    async def get_cart_content(self, logged_in: bool = False, session = None) -> Dict:
         """
         Fetches the current cart contents
 
         :return: Dictionary with cart content
         """
 
-        cart_url = "/services/frontend-service/v2/cart-review/check-cart"
+        cart_url = "/services/frontend-service/v2/cart"
 
-        session = requests.Session()
-
-        try:
+        if not logged_in:
+            session = requests.Session()
             await self.login(session)
+        try:
             cart_response = await self._run_in_executor(
                 session.get,
                 f"{BASE_URL}{cart_url}",
@@ -382,7 +388,8 @@ class RohlikCZAPI:
             _LOGGER.error(f"Request failed: {err}")
             raise ValueError("Request failed")
         finally:
-            await self._run_in_executor(session.close)
+            if not logged_in:
+                await self._run_in_executor(session.close)
 
         data = cart_content.get("data", {})
 
@@ -410,3 +417,38 @@ class RohlikCZAPI:
             cart_info["products"].append(product_info)
 
         return cart_info
+
+    async def delete_from_cart(self, order_field_id: str) -> dict:
+        """
+        Delete an item from the shopping cart using orderFieldId.
+
+        Args:
+            order_field_id (str): The orderFieldId of the item to delete
+
+        Returns:
+            dict: Response from the deletion operation
+        """
+        session = requests.Session()
+
+        try:
+            await self.login(session)
+
+            delete_url = f"/services/frontend-service/v2/cart?orderFieldId={order_field_id}"
+
+            delete_response = await self._run_in_executor(
+                session.delete,
+                f"{BASE_URL}{delete_url}"
+            )
+            delete_response.raise_for_status()
+
+            try:
+                return delete_response.json()
+            except:
+                # Handle case where response might not be JSON
+                return {"success": True, "status_code": delete_response.status_code}
+
+        except RequestException as err:
+            _LOGGER.error(f"Error deleting item with orderFieldId {order_field_id}: {err}")
+            raise APIRequestFailedError(f"Failed to delete item from cart: {err}")
+        finally:
+            await self._run_in_executor(session.close)

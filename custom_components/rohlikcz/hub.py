@@ -68,6 +68,7 @@ class RohlikAccount:
         """Add a product to the shopping cart."""
         product_list = [{"product_id": product_id, "quantity": quantity}]
         result = await self._rohlik_api.add_to_cart(product_list)
+        await self.async_update()
         return result
 
     async def search_product(self, product_name: str, limit: int = 10, favourite: bool = False) -> Optional[Dict[str, Any]]:
@@ -96,3 +97,9 @@ class RohlikAccount:
 
         else:
             return {"success": False, "message": f'No product matched when searching for "{product_name}"{' in favourites' if favourite else ''}.', "added_to_cart": []}
+
+    async def delete_from_cart(self, order_field_id: str) -> Dict:
+        """Delete a product from the shopping cart using orderFieldId."""
+        result = await self._rohlik_api.delete_from_cart(order_field_id)
+        await self.async_update()  # Refresh data after deletion
+        return result
