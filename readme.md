@@ -5,6 +5,10 @@ This custom component provides integration with [Rohlik.cz](https://www.rohlik.c
 > [!WARNING] 
 > This integration is made by reverse engineering API that is used by the rohlik.cz website. Use this integration at your own risk.
 
+## Scan to add to cart
+
+You can now use barcode scanner, such as [here](https://github.com/dvejsada/ha-barcode-scanner) to add products directly to your rohlik.cz cart. I will soon share here automation blueprint on how to achieve that. You can also find a file in this repo containing barcodes that is used for lookup. Feel free to contribute!
+
 ## Installation
 
 ### Using [HACS](https://hacs.xyz/)
