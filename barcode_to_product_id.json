@@ -1,5 +1,10 @@
 [
   {"barcode": "8595643805102", "product_id": "1422502", "name": "Pappudia Jablečný džus 100%"},
   {"barcode": "8594003963759", "product_id": "1418917", "name": "Matylda BIO Tvarohový dezert jahoda"},
-  {"barcode": "8595643813046", "product_id": "1462148", "name": "Miil Máslo 82%"}
+  {"barcode": "8595643813046", "product_id": "1462148", "name": "Miil Máslo 82%"},
+  {"barcode": "8595643814814", "product_id": "1468393", "name": "Miil Smetanový jogurt bílý, kapsička"},
+  {"barcode": "8594017361190", "product_id": "1327951", "name": "Sláma Lahůdková paštika"},
+  {"barcode": "8594003969171", "product_id": "1411232", "name": "Matylda BIO Tvarohový dezert bílý"},
+  {"barcode": "8595643802729", "product_id": "1406933", "name": "Miil Mozzarella 42%"},
+  {"barcode": "8595643802705", "product_id": "1406918", "name": "Miil Krémový jogurt lesní směs"}
 ]
