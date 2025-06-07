@@ -7,6 +7,10 @@ This custom component provides integration with [Rohlik.cz](https://www.rohlik.c
 
 ## Scan to add to cart
 
+
+https://github.com/user-attachments/assets/799cb8c4-1468-404a-907e-3f6d9dd2cfbf
+
+
 You can now use barcode scanner, such as [here](https://github.com/dvejsada/ha-barcode-scanner) to add products directly to your rohlik.cz cart by scanning barcode. You can find the connected automations in the automations directory in this repository. 
  - Add to Cart: The automation will search for the product by its barcode in the product list and add it to your cart.
  - Update data: The automation will automatically download current barcode to product id file from this repo each day at 3 a.m.
