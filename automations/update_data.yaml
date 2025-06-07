@@ -1,0 +1,17 @@
+alias: Update Barcode Mapping File
+description: Download updated barcode mapping from GitHub
+triggers:
+  - at: "03:00:00" # Runs daily at 3 AM
+    trigger: time
+  - event: start # Runs on Home Assistant startup
+    trigger: homeassistant
+actions:
+  - action: shell_command.download_barcode_mapping # Downloads the barcode mapping file from GitHub, you need to add this command in your Home Assistant configuration (see configuration.yaml)
+    data: {}
+  - delay:
+      seconds: 3
+  - action: persistent_notification.create # Creates a notification about the update (optional)
+    data:
+      title: Product list updated
+      message: Product list file updated at {{ now().strftime('%Y-%m-%d %H:%M') }}
+mode: single

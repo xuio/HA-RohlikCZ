@@ -1,0 +1,50 @@
+alias: Scan Barcode to Add to Cart
+description: Adds product to Rohlik.cz cart based on scanned barcode
+triggers:
+  - entity_id: sensor.atom_qrcode_scanner_barcode_scanner # Entity name for the barcode scanner
+    trigger: state
+actions:
+  - action: shell_command.lookup_product_id # Looks up product ID based on barcode, you need to add this command in your Home Assistant configuration (see configuration.yaml)
+    data:
+      barcode: "{{ scanned_barcode }}"
+    response_variable: product_lookup
+  - if:
+      - condition: template
+        value_template: >-
+          {{ product_lookup['stdout'] != 'unknown' and product_lookup['stdout']
+          != 'null' }}
+    then:
+      - action: shell_command.lookup_product_name # Looks up product name based on barcode, you need to add this command in your Home Assistant configuration (see configuration.yaml)
+        data:
+          barcode: "{{ scanned_barcode }}"
+        response_variable: name_lookup
+      - action: rohlikcz.add_to_cart # Calls action to add product to cart
+        metadata: {}
+        data:
+          product_id: "{{ int(product_lookup['stdout']) }}"
+          quantity: 1
+          config_entry_id: XXXXXXXXXXXXXXXX # Replace with your Rohlik.cz config entry ID
+        response_variable: cart_response
+      - action: tts.speak # Announces successful addition to cart (optional, you may remove this if not needed)
+        metadata: {}
+        data:
+          cache: true
+          media_player_entity_id: media_player.xxxxxxxxxxxx # Replace with your media player entity ID
+          message: Přidala jsem do košíku položku {{name_lookup['stdout'] }}.
+          language: cs
+        target:
+          entity_id: tts.elevenlabs
+    else:
+      - action: tts.speak # Announces failure to find product (optional, you may remove this if not needed)
+        metadata: {}
+        data:
+          cache: true
+          media_player_entity_id: media_player.xxxxxxxxxxx # Replace with your media player entity ID
+          message: Omlouvám se, ale tento výrobek nemám v databázi.
+          language: cs
+        target:
+          entity_id: tts.elevenlabs # Replace with your TTS entity ID
+mode: parallel
+max: 10
+variables:
+  scanned_barcode: "{{ trigger.to_state.state }}"
