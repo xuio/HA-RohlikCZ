@@ -1,0 +1,18 @@
+
+shell_command:
+    # Download the barcode to product_id mapping file from GitHub (required for automation to update data)
+  download_barcode_mapping: >
+    curl -s -o /config/barcode_to_product_id.json 
+    "https://raw.githubusercontent.com/dvejsada/HA-RohlikCZ/refs/heads/master/barcode_to_product_id.json"
+
+  # Lookup product id by barcode (required for automation to add to cart)
+  lookup_product_id: >
+    jq -r --arg barcode "{{ barcode }}" 
+    'first(.[] | select(.barcode == $barcode) | .product_id) // "unknown"' 
+    /config/barcode_to_product_id.json
+
+  # Lookup product name by barcode (required for automation to add to cart)
+  lookup_product_name: >
+    jq -r --arg barcode "{{ barcode }}" 
+    'first(.[] | select(.barcode == $barcode) | .name) // "unknown"' 
+    /config/barcode_to_product_id.json
