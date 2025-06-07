@@ -6,39 +6,51 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 import voluptuous as vol
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_SITE, CONF_BASE_URL, SITE_OPTIONS
 from .errors import InvalidCredentialsError
 from .rohlik_api import RohlikCZAPI
-
 
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+async def validate_input(
+    hass: HomeAssistant, data: dict[str, Any]
+) -> tuple[str, dict[str, Any]]:
     """Validate the user input allows us to connect.
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
 
-    api = RohlikCZAPI(data[CONF_EMAIL], data[CONF_PASSWORD])  # type: ignore[Any]
+    # Map selected site to actual base URL
+    base_url = SITE_OPTIONS[data[CONF_SITE]]
+
+    api = RohlikCZAPI(data[CONF_EMAIL], data[CONF_PASSWORD], base_url)  # type: ignore[Any]
 
     reply = await api.get_data()
 
     title: str = reply["login"]["data"]["user"]["name"]
 
-    return title, data
+    # Return sanitized data (store base_url instead of human-readable site)
+    return title, {
+        CONF_EMAIL: data[CONF_EMAIL],
+        CONF_PASSWORD: data[CONF_PASSWORD],
+        CONF_BASE_URL: base_url,
+    }
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
     VERSION = 0.1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> config_entries.FlowResult:
-
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
         data_schema: dict[Any, Any] = {
             vol.Required(CONF_EMAIL, default="e-mail"): str,
-            vol.Required(CONF_PASSWORD, default="password"): str
+            vol.Required(CONF_PASSWORD, default="password"): str,
+            vol.Required(CONF_SITE, default="Rohlík.cz"): vol.In(
+                list(SITE_OPTIONS.keys())
+            ),
         }
 
         # Set dict for errors

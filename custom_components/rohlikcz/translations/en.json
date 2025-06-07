@@ -88,8 +88,7 @@
         "name": "Free Express Deliveries"
       },
       "credit_amount": {
-        "name": "Credit Balance",
-        "unit_of_measurement": "CZK"
+        "name": "Credit Balance"
       },
       "bags_amount": {
         "name": "Bags Amount",
@@ -99,8 +98,7 @@
         "name": "Premium Days Remaining"
       },
       "cart_price": {
-        "name": "Cart Total",
-        "unit_of_measurement": "CZK"
+        "name": "Cart Total"
       },
       "updated": {
         "name": "Last Updated"

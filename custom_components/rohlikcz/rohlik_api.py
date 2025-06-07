@@ -24,11 +24,12 @@ import functools
 
 _LOGGER = logging.getLogger(__name__)
 
-BASE_URL = "https://www.rohlik.cz"
+# Default URL used when configuration does not specify another shop front.
+DEFAULT_BASE_URL = "https://www.rohlik.cz"
 
 
 def mask_data(input_dict):
-    """ Takes a dictionary and replaces all non-null values with "XXXXXXX". Null values (None) remain unchanged."""
+    """Takes a dictionary and replaces all non-null values with "XXXXXXX". Null values (None) remain unchanged."""
     if not isinstance(input_dict, dict):
         return input_dict
 
@@ -41,9 +42,14 @@ def mask_data(input_dict):
             result[key] = mask_data(value)
         elif isinstance(value, list):
             # Handle lists by masking each element if needed
-            result[key] = [mask_data(item) if isinstance(item, dict)
-                           else "XXXXXXX" if item is not None else None
-                           for item in value]
+            result[key] = [
+                mask_data(item)
+                if isinstance(item, dict)
+                else "XXXXXXX"
+                if item is not None
+                else None
+                for item in value
+            ]
         else:
             result[key] = "XXXXXXX"
 
@@ -58,6 +64,7 @@ class Product(TypedDict):
         product_id (int): The unique identifier of the product
         quantity (int): The quantity of the product to add
     """
+
     product_id: int
     quantity: int
 
@@ -74,19 +81,22 @@ class RohlikCZAPI:
         endpoints (dict): Dictionary of available API endpoints
 
     """
-    def __init__(self, username, password):
+
+    def __init__(self, username: str, password: str, base_url: str = DEFAULT_BASE_URL):
         """
         Initialize the Rohlik API client.
 
         Args:
             username (str): Email address used for Rohlik.cz login
             password (str): Password for Rohlik.cz account
+            base_url (str): Base URL for the Rohlik.cz service
         """
         self._user = username
         self._pass = password
         self._user_id = None
         self._address_id = None
         self.endpoints = {}
+        self._base_url: str = base_url.rstrip("/")  # ensure no trailing slash
 
     def _run_in_executor(self, func, *args, **kwargs):
         """
@@ -122,37 +132,48 @@ class RohlikCZAPI:
         """
 
         login_data = {"email": self._user, "password": self._pass, "name": ""}
-        login_url = f"{BASE_URL}/services/frontend-service/login"
+        login_url = f"{self._base_url}/services/frontend-service/login"
 
         try:
             login_response: Response = await self._run_in_executor(
-                session.post,
-                login_url,
-                json=login_data
+                session.post, login_url, json=login_data
             )
 
             login_response: dict = login_response.json()
 
             if login_response["status"] != 200:
                 if login_response["status"] == 401:
-                    raise InvalidCredentialsError(login_response["messages"][0]["content"])
+                    raise InvalidCredentialsError(
+                        login_response["messages"][0]["content"]
+                    )
                 else:
-                    raise RohlikczError(f"Unknown error occurred during login: {login_response["messages"][0]["content"]}")
+                    raise RohlikczError(
+                        f"Unknown error occurred during login: {login_response['messages'][0]['content']}"
+                    )
 
             if not self._user_id:
-                self._user_id = login_response.get("data", {}).get("user", {}).get("id", None)
+                self._user_id = (
+                    login_response.get("data", {}).get("user", {}).get("id", None)
+                )
 
             if not self._address_id:
                 try:
-                    self._address_id = login_response.get("data", {}).get("address", {}).get("id", None)
+                    self._address_id = (
+                        login_response.get("data", {})
+                        .get("address", {})
+                        .get("id", None)
+                    )
                 except AttributeError:
-                    _LOGGER.error(f"Address cannot be retrieved from login data. No delivery time sensors will be added. Login response: {mask_data(login_response)}")
+                    _LOGGER.error(
+                        f"Address cannot be retrieved from login data. No delivery time sensors will be added. Login response: {mask_data(login_response)}"
+                    )
 
             return login_response
 
         except RequestException as err:
-            raise APIRequestFailedError(f"Cannot connect to website! Check your internet connection and try again: {err}")
-
+            raise APIRequestFailedError(
+                f"Cannot connect to website! Check your internet connection and try again: {err}"
+            )
 
     async def get_data(self):
         """
@@ -173,7 +194,7 @@ class RohlikCZAPI:
             "last_order": "/api/v3/orders/delivered?offset=0&limit=1",
             "premium_profile": "/services/frontend-service/premium/profile",
             "next_delivery_slot": "/services/frontend-service/timeslots-api/",
-            "delivery_announcements": "/services/frontend-service/announcements/delivery"
+            "delivery_announcements": "/services/frontend-service/announcements/delivery",
         }
 
         result["login"] = await self.login(session)
@@ -181,16 +202,18 @@ class RohlikCZAPI:
         try:
             # Step 2: Get data from all other endpoints
             for endpoint, path in self.endpoints.items():
-
                 if endpoint == "next_delivery_slot":
                     if self._address_id:
-                        path = self.endpoints["next_delivery_slot"] + f"0?userId={self._user_id}&addressId={self._address_id}&reasonableDeliveryTime=true"
+                        path = (
+                            self.endpoints["next_delivery_slot"]
+                            + f"0?userId={self._user_id}&addressId={self._address_id}&reasonableDeliveryTime=true"
+                        )
                     else:
                         result[endpoint] = None
                         continue
 
                 try:
-                    url = f"{BASE_URL}{path}"
+                    url = f"{self._base_url}{path}"
                     response = await self._run_in_executor(session.get, url)
                     response.raise_for_status()
                     result[endpoint] = response.json()
@@ -199,7 +222,9 @@ class RohlikCZAPI:
                     result[endpoint] = None
 
             try:
-                result["cart"] = await self.get_cart_content(logged_in=True, session=session)
+                result["cart"] = await self.get_cart_content(
+                    logged_in=True, session=session
+                )
 
             except RequestException as err:
                 _LOGGER.error(f"Error fetching cart: {err}")
@@ -208,7 +233,9 @@ class RohlikCZAPI:
             return result
 
         except RequestException as err:
-            raise APIRequestFailedError(f"Cannot connect to website! Check your internet connection and try again: {err}")
+            raise APIRequestFailedError(
+                f"Cannot connect to website! Check your internet connection and try again: {err}"
+            )
         finally:
             # Step 3: Close the session
             await self._run_in_executor(session.close)
@@ -236,20 +263,20 @@ class RohlikCZAPI:
                     "productId": int(product["product_id"]),
                     "quantity": int(product["quantity"]),
                     "recipeId": None,
-                    "source": "true:Shopping Lists"
+                    "source": "true:Shopping Lists",
                 }
                 try:
                     search_response = await self._run_in_executor(
                         session.post,
-                        f"{BASE_URL}{search_url}",
-                        json=search_payload
+                        f"{self._base_url}{search_url}",
+                        json=search_payload,
                     )
                     search_response.raise_for_status()
                     added_products.append(product["product_id"])
                 except RequestException as err:
-                    _LOGGER.error(f"Error adding {product["product_id"]} due to {err}")
+                    _LOGGER.error(f"Error adding {product['product_id']} due to {err}")
 
-            return {"added_products":added_products}
+            return {"added_products": added_products}
 
         except RequestException as err:
             _LOGGER.error(f"Request failed: {err}")
@@ -257,7 +284,9 @@ class RohlikCZAPI:
         finally:
             await self._run_in_executor(session.close)
 
-    async def search_product(self, product_name: str, limit: int = 10, favourite: bool = False):
+    async def search_product(
+        self, product_name: str, limit: int = 10, favourite: bool = False
+    ):
         """
         Search for products by name and return the first matching product.
 
@@ -280,9 +309,9 @@ class RohlikCZAPI:
                 "search": product_name,
                 "offset": 0,
                 "limit": limit + 5,
-                "companyId" : 1,
+                "companyId": 1,
                 "filterData": {"filters": []},
-                "canCorrect": True
+                "canCorrect": True,
             }
 
             # Login to account to return user-specific data
@@ -290,21 +319,26 @@ class RohlikCZAPI:
 
             # Perform API request
             search_response = await self._run_in_executor(
-                session.get,
-                f"{BASE_URL}{search_url}",
-                params=search_payload
+                session.get, f"{self._base_url}{search_url}", params=search_payload
             )
             search_response.raise_for_status()
-            search_data:dict = search_response.json()
-            found_products:list = search_data["data"]["productList"]
+            search_data: dict = search_response.json()
+            found_products: list = search_data["data"]["productList"]
 
             # Remove sponsored content
-            found_products = [p for p in found_products if
-                              not any(badge.get("slug") == "promoted" for badge in p.get("badge", []))]
+            found_products = [
+                p
+                for p in found_products
+                if not any(
+                    badge.get("slug") == "promoted" for badge in p.get("badge", [])
+                )
+            ]
 
             # Keep only favourites if requested
             if favourite:
-                found_products = [p for p in found_products if p.get("favourite", False)]
+                found_products = [
+                    p for p in found_products if p.get("favourite", False)
+                ]
 
             # Keep only results up to the specified limit
             if len(found_products) > limit:
@@ -313,13 +347,15 @@ class RohlikCZAPI:
             if len(found_products) > 0:
                 search_results = {"search_results": []}
                 for i in range(len(found_products)):
-                    search_results["search_results"].append({
-                        "id": found_products[i]["productId"],
-                        "name": found_products[i]["productName"],
-                        "price": f"{found_products[i]["price"]["full"]} {found_products[i]["price"]["currency"]}",
-                        "brand": found_products[i]["brand"],
-                        "amount": found_products[i]["textualAmount"]
-                            })
+                    search_results["search_results"].append(
+                        {
+                            "id": found_products[i]["productId"],
+                            "name": found_products[i]["productName"],
+                            "price": f"{found_products[i]['price']['full']} {found_products[i]['price']['currency']}",
+                            "brand": found_products[i]["brand"],
+                            "amount": found_products[i]["textualAmount"],
+                        }
+                    )
                 return search_results
             else:
                 return None
@@ -352,11 +388,14 @@ class RohlikCZAPI:
             await self.login(session)
             search_response = await self._run_in_executor(
                 session.get,
-                f"{BASE_URL}{shopping_list_url}",
+                f"{self._base_url}{shopping_list_url}",
             )
             search_response.raise_for_status()
             search_data = search_response.json()
-            return {"name": search_data["name"], "products_in_list": search_data["products"]}
+            return {
+                "name": search_data["name"],
+                "products_in_list": search_data["products"],
+            }
 
         except RequestException as err:
             _LOGGER.error(f"Request failed: {err}")
@@ -364,7 +403,7 @@ class RohlikCZAPI:
         finally:
             await self._run_in_executor(session.close)
 
-    async def get_cart_content(self, logged_in: bool = False, session = None) -> Dict:
+    async def get_cart_content(self, logged_in: bool = False, session=None) -> Dict:
         """
         Fetches the current cart contents
 
@@ -379,7 +418,7 @@ class RohlikCZAPI:
         try:
             cart_response = await self._run_in_executor(
                 session.get,
-                f"{BASE_URL}{cart_url}",
+                f"{self._base_url}{cart_url}",
             )
             cart_response.raise_for_status()
             cart_content = cart_response.json()
@@ -398,12 +437,11 @@ class RohlikCZAPI:
             "total_price": data.get("totalPrice", 0),
             "total_items": len(data.get("items", {})),
             "can_make_order": data.get("submitConditionPassed", False),
-            "products": []
+            "products": [],
         }
 
         # Process each product item
         for product_id, product_data in data.get("items", {}).items():
-
             product_info = {
                 "id": product_id,
                 "cart_item_id": product_data.get("orderFieldId", ""),
@@ -411,7 +449,7 @@ class RohlikCZAPI:
                 "quantity": product_data.get("quantity", 0),
                 "price": product_data.get("price", 0),
                 "category_name": product_data.get("primaryCategoryName", ""),
-                "brand": product_data.get("brand", "")
+                "brand": product_data.get("brand", ""),
             }
 
             cart_info["products"].append(product_info)
@@ -433,11 +471,12 @@ class RohlikCZAPI:
         try:
             await self.login(session)
 
-            delete_url = f"/services/frontend-service/v2/cart?orderFieldId={order_field_id}"
+            delete_url = (
+                f"/services/frontend-service/v2/cart?orderFieldId={order_field_id}"
+            )
 
             delete_response = await self._run_in_executor(
-                session.delete,
-                f"{BASE_URL}{delete_url}"
+                session.delete, f"{self._base_url}{delete_url}"
             )
             delete_response.raise_for_status()
 
@@ -448,7 +487,9 @@ class RohlikCZAPI:
                 return {"success": True, "status_code": delete_response.status_code}
 
         except RequestException as err:
-            _LOGGER.error(f"Error deleting item with orderFieldId {order_field_id}: {err}")
+            _LOGGER.error(
+                f"Error deleting item with orderFieldId {order_field_id}: {err}"
+            )
             raise APIRequestFailedError(f"Failed to delete item from cart: {err}")
         finally:
             await self._run_in_executor(session.close)

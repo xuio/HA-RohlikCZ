@@ -11,13 +11,21 @@ from .rohlik_api import RohlikCZAPI
 class RohlikAccount:
     """Setting RohlikCZ account as device."""
 
-    def __init__(self, hass: HomeAssistant, username: str, password: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        username: str,
+        password: str,
+        base_url: str = "https://www.rohlik.cz",
+    ) -> None:
         """Initialize account info."""
         super().__init__()
         self._hass = hass
         self._username: str = username
         self._password: str = password
-        self._rohlik_api = RohlikCZAPI(self._username, self._password)
+        self._rohlik_api = RohlikCZAPI(self._username, self._password, base_url)
+        self._base_url: str = base_url
+        self._is_knuspr: bool = "knuspr.de" in base_url
         self.data: dict = {}
         self._callbacks: set[Callable[[], None]] = set()
 
@@ -29,9 +37,18 @@ class RohlikAccount:
             return False
 
     @property
+    def is_knuspr(self) -> bool:
+        """Return True if this account is for knuspr.de"""
+        return self._is_knuspr
+
+    @property
     def device_info(self) -> DeviceInfo:
-        """ Provides a device info. """
-        return {"identifiers": {(DOMAIN, self.data["login"]["data"]["user"]["id"])}, "name": self.data["login"]["data"]["user"]["name"], "manufacturer": "Rohlík.cz"}
+        """Provides a device info."""
+        return {
+            "identifiers": {(DOMAIN, self.data["login"]["data"]["user"]["id"])},
+            "name": self.data["login"]["data"]["user"]["name"],
+            "manufacturer": "Rohlík.cz",
+        }
 
     @property
     def name(self) -> str:
@@ -44,7 +61,7 @@ class RohlikAccount:
         return self.data["login"]["data"]["user"]["id"]
 
     async def async_update(self) -> None:
-        """ Updates the data from API."""
+        """Updates the data from API."""
 
         self.data = await self._rohlik_api.get_data()
 
@@ -71,7 +88,9 @@ class RohlikAccount:
         await self.async_update()
         return result
 
-    async def search_product(self, product_name: str, limit: int = 10, favourite: bool = False) -> Optional[Dict[str, Any]]:
+    async def search_product(
+        self, product_name: str, limit: int = 10, favourite: bool = False
+    ) -> Optional[Dict[str, Any]]:
         """Search for a product by name."""
         result = await self._rohlik_api.search_product(product_name, limit, favourite)
         return result
@@ -82,21 +101,35 @@ class RohlikAccount:
         return result
 
     async def get_cart_content(self) -> Dict:
-        """ Retrieves cart content. """
+        """Retrieves cart content."""
         result = await self._rohlik_api.get_cart_content()
         return result
 
-    async def search_and_add(self, product_name: str, quantity: int, favourite: bool = False) -> Dict | None:
-        """ Searches for product by name and adds to cart"""
+    async def search_and_add(
+        self, product_name: str, quantity: int, favourite: bool = False
+    ) -> Dict | None:
+        """Searches for product by name and adds to cart"""
 
-        searched_product = await self.search_product(product_name, limit = 5, favourite=favourite)
+        searched_product = await self.search_product(
+            product_name, limit=5, favourite=favourite
+        )
 
         if searched_product:
-            await self.add_to_cart(searched_product["search_results"][0]["id"], quantity)
-            return {"success": True, "message": "", "added_to_cart": [searched_product["search_results"][0]]}
+            await self.add_to_cart(
+                searched_product["search_results"][0]["id"], quantity
+            )
+            return {
+                "success": True,
+                "message": "",
+                "added_to_cart": [searched_product["search_results"][0]],
+            }
 
         else:
-            return {"success": False, "message": f'No product matched when searching for "{product_name}"{' in favourites' if favourite else ''}.', "added_to_cart": []}
+            return {
+                "success": False,
+                "message": f'No product matched when searching for "{product_name}"{" in favourites" if favourite else ""}.',
+                "added_to_cart": [],
+            }
 
     async def delete_from_cart(self, order_field_id: str) -> Dict:
         """Delete a product from the shopping cart using orderFieldId."""

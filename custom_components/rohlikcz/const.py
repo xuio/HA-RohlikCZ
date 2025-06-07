@@ -1,6 +1,7 @@
 """
 Defining constants for the project.
 """
+
 from __future__ import annotations
 
 from aiohttp import ClientTimeout
@@ -9,6 +10,16 @@ from typing import Final
 
 HTTP_TIMEOUT: Final = ClientTimeout(total=10)
 DOMAIN = "rohlikcz"
+
+# New configuration keys and options
+CONF_SITE = "site"
+CONF_BASE_URL = "base_url"
+
+# Mapping of dropdown options to actual base URLs
+SITE_OPTIONS = {
+    "Rohlík.cz": "https://www.rohlik.cz",
+    "Knuspr.de": "https://www.knuspr.de",
+}
 
 """Icons"""
 ICON_PARENTCLUB = "mdi:human-male-female-child"

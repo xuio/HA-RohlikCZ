@@ -1,4 +1,5 @@
 """Todo platform for Rohlik.cz integration."""
+
 from __future__ import annotations
 
 import logging
@@ -36,19 +37,22 @@ class RohlikCartTodo(TodoListEntity):
     """A Rohlik Shopping Cart TodoListEntity."""
 
     _attr_has_entity_name = True
-    _attr_supported_features = (TodoListEntityFeature.CREATE_TODO_ITEM | TodoListEntityFeature.DELETE_TODO_ITEM | TodoListEntityFeature.UPDATE_TODO_ITEM)
+    _attr_supported_features = (
+        TodoListEntityFeature.CREATE_TODO_ITEM
+        | TodoListEntityFeature.DELETE_TODO_ITEM
+        | TodoListEntityFeature.UPDATE_TODO_ITEM
+    )
     _attr_translation_key = "shopping_cart"
     _attr_icon = ICON_CART
 
-    def __init__(
-        self,
-        rohlik_hub: RohlikAccount
-    ) -> None:
+    def __init__(self, rohlik_hub: RohlikAccount) -> None:
         """Initialize RohlikCartTodo."""
         super().__init__()
         self._rohlik_hub = rohlik_hub
         self._attr_unique_id = f"{rohlik_hub.unique_id}-cart"
-        self._attr_name = "Rohlik Shopping Cart"
+        self._attr_name = (
+            "Knuspr Shopping Cart" if rohlik_hub.is_knuspr else "Rohlik Shopping Cart"
+        )
         self._attr_device_info = rohlik_hub.device_info
         self._cart_content = None
 
@@ -66,17 +70,18 @@ class RohlikCartTodo(TodoListEntity):
         items = []
         for product in self._cart_content.get("products", []):
             # Format the summary to include relevant information
-            summary = f"{product['name']} ({product['quantity']}) - {product['price']} Kč"
+            currency_symbol = "€" if self._rohlik_hub.is_knuspr else "Kč"
+            summary = f"{product['name']} ({product['quantity']}) - {product['price']} {currency_symbol}"
 
             # Use cart_item_id as the unique identifier for cart items
             items.append(
                 TodoItem(
                     summary=summary,
-                    uid=str(product['cart_item_id']),
+                    uid=str(product["cart_item_id"]),
                     status=TodoItemStatus.NEEDS_ACTION,
                     description=f"Category: {product.get('category_name', '')}\n"
-                               f"Brand: {product.get('brand', '')}\n"
-                               f"Product ID: {product['id']}"
+                    f"Brand: {product.get('brand', '')}\n"
+                    f"Product ID: {product['id']}",
                 )
             )
 
@@ -91,7 +96,7 @@ class RohlikCartTodo(TodoListEntity):
         """
 
         # Check if the summary starts with a number followed by a space
-        quantity_match = re.match(r'^(\d+)\s+(.+)$', item.summary)
+        quantity_match = re.match(r"^(\d+)\s+(.+)$", item.summary)
 
         if quantity_match:
             # If format is "X product name"
@@ -103,10 +108,10 @@ class RohlikCartTodo(TodoListEntity):
             product_name = item.summary
 
         # If there's still quantity info in parentheses, use that instead This handles cases like "rohlík (3)" or "2 rohlíky (5)" where (5) would take precedence
-        parentheses_match = re.search(r'\((\d+)\)$', product_name)
+        parentheses_match = re.search(r"\((\d+)\)$", product_name)
         if parentheses_match:
             quantity = int(parentheses_match.group(1))
-            product_name = product_name.split('(')[0].strip()
+            product_name = product_name.split("(")[0].strip()
 
         # Search for product and add to cart
         result = await self._rohlik_hub.search_and_add(product_name, quantity)
@@ -114,7 +119,6 @@ class RohlikCartTodo(TodoListEntity):
         if not result or not result.get("success", False):
             _LOGGER.error("Error with adding product to")
             raise ServiceValidationError(f"Product not found: {product_name}")
-
 
     async def async_delete_todo_items(self, uids: list[str]) -> None:
         """Delete items from the shopping cart using the dedicated delete endpoint."""
@@ -126,9 +130,6 @@ class RohlikCartTodo(TodoListEntity):
             except Exception as err:
                 _LOGGER.error("Error deleting item %s: %s", uid, err)
 
-
     async def async_update_todo_item(self, item: TodoItem) -> None:
         """Update an item to the To-do list."""
         pass
-
-

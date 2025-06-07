@@ -88,8 +88,7 @@
         "name": "Expresní doručení zdarma"
       },
       "credit_amount": {
-        "name": "Zůstatek kreditu",
-        "unit_of_measurement": "Kč"
+        "name": "Zůstatek kreditu"
       },
       "bags_amount": {
         "name": "Počet tašek",
@@ -99,8 +98,7 @@
         "name": "Zbývající dny Premium"
       },
       "cart_price": {
-        "name": "Cena košíku",
-        "unit_of_measurement": "Kč"
+        "name": "Cena košíku"
       },
       "updated": {
         "name": "Aktualizováno"
