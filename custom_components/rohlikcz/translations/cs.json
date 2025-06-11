@@ -123,6 +123,12 @@
       },
       "delivery_info": {
         "name": "Informace o doručení"
+      },
+      "delivery_eta": {
+        "name": "Čas doručení (ETA)"
+      },
+      "next_order_number": {
+        "name": "Číslo další objednávky"
       }
     },
     "todo": {

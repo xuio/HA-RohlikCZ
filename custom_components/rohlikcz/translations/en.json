@@ -123,6 +123,12 @@
       },
       "delivery_info": {
         "name": "Delivery Information"
+      },
+      "delivery_eta": {
+        "name": "Delivery ETA"
+      },
+      "next_order_number": {
+        "name": "Next Order Number"
       }
     },
     "todo": {

@@ -8,13 +8,15 @@ import datetime
 
 from collections.abc import Mapping
 from datetime import timedelta, datetime, time
-from typing import Any
+from typing import Any, Callable
 from zoneinfo import ZoneInfo
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     ICON_UPDATE,
@@ -51,6 +53,8 @@ async def async_setup_entry(
 
     entities = [
         FirstDeliverySensor(rohlik_hub),
+        ParsedDeliveryTimeSensor(rohlik_hub),
+        NextOrderIDSensor(rohlik_hub),
         AccountIDSensor(rohlik_hub),
         EmailSensor(rohlik_hub),
         PhoneSensor(rohlik_hub),
@@ -107,7 +111,9 @@ class DeliveryInfo(BaseEntity, SensorEntity):
             return None
 
     @staticmethod
-    def extract_delivery_datetime(text: str) -> datetime | None:
+    def extract_delivery_datetime(
+        text: str, is_knuspr: bool = False
+    ) -> datetime | None:
         """
         Extract delivery time information from various formatted strings and return a datetime object.
 
@@ -118,6 +124,7 @@ class DeliveryInfo(BaseEntity, SensorEntity):
 
         Args:
             text: HTML text containing delivery time information
+            is_knuspr: Flag indicating if the shop is Knuspr
 
         Returns:
             A timezone-aware datetime object representing the delivery time, or None if no valid time found
@@ -129,29 +136,65 @@ class DeliveryInfo(BaseEntity, SensorEntity):
         # Get plain text without HTML tags for pattern detection
         plain_text: str = re.sub(r"<[^>]+>", "", clean_text)
 
-        prague_tz = ZoneInfo("Europe/Prague")
-        now = datetime.now(tz=prague_tz)
+        # Determine timezone based on shop variant (Rohlík vs. Knuspr)
+        tz = ZoneInfo("Europe/Berlin") if is_knuspr else ZoneInfo("Europe/Prague")
+
+        now = datetime.now(tz=tz)
         current_year: int = now.year
 
-        # Check for Type 3: Minutes until delivery
-        if re.search(
-            r"(přibližně za|za)\s*.*\s*(minut|minuty|min)", plain_text, re.IGNORECASE
-        ):
-            # Extract number of minutes from highlighted span
-            minutes_pattern: re.Pattern = re.compile(
-                r"<span[^>]*color:[^>]*>([0-9]+)</span>"
+        # -------------- TYPE 3: "in X minutes" -----------------
+        # Look for a number followed by a minutes keyword (CZ or DE variants)
+        _minutes_keyword_re = r"minut|minuty|min|Minuten|Min\\.?|Min"
+
+        # First try to grab highlighted numbers inside <span> tags
+        minutes_span_pattern = re.compile(
+            r"<span[^>]*>([0-9]{1,3})</span>\s*(?:" + _minutes_keyword_re + ")",
+            re.IGNORECASE,
+        )
+        span_match = minutes_span_pattern.search(clean_text)
+        if span_match:
+            try:
+                return now + timedelta(minutes=int(span_match.group(1)))
+            except ValueError:
+                pass
+
+        # Fallback to plain-text detection like "in 55 Minuten", "in etwa 3 Minuten"
+        plain_minutes_match = re.search(
+            r"\b([0-9]{1,3})\s*(?:" + _minutes_keyword_re + ")\b",
+            plain_text,
+            re.IGNORECASE,
+        )
+        if plain_minutes_match:
+            try:
+                return now + timedelta(minutes=int(plain_minutes_match.group(1)))
+            except ValueError:
+                pass
+
+        # -------------- Additional German date/time patterns --------------
+        if is_knuspr:
+            # Pattern: "am 26.4. um 08:00" OR "am 26.4. gegen 08:00" (optional ca.)
+            de_date_time = re.search(
+                r"am\s*([0-9]{1,2})\.\s*([0-9]{1,2})\.\s*(?:um|gegen)\s*(?:ca\.\s*)?([0-9]{1,2}:[0-9]{2})",
+                plain_text,
+                re.IGNORECASE,
             )
-
-            matches = re.finditer(minutes_pattern, clean_text)
-            minutes_matches: list[str] = [match.group(1) for match in matches]
-
-            if minutes_matches:
+            if de_date_time:
+                day = int(de_date_time.group(1))
+                month = int(de_date_time.group(2))
+                hour, minute = map(int, de_date_time.group(3).split(":"))
                 try:
-                    minutes: int = int(minutes_matches[0])
-                    # Calculate the estimated delivery time
-                    return now + timedelta(minutes=minutes)
+                    return datetime(current_year, month, day, hour, minute, tzinfo=tz)
                 except ValueError:
                     pass
+
+            # Only time with "gegen" / "um ca." without explicit date (today/tomorrow determination)
+            de_time_only = re.search(
+                r"(?:gegen|um)\s*(?:ca\.\s*)?([0-9]{1,2}:[0-9]{2})",
+                plain_text,
+                re.IGNORECASE,
+            )
+            if de_time_only:
+                time_matches = [de_time_only.group(1)]
 
         # Check for Type 2: Date and time
         date_pattern = re.compile(
@@ -176,14 +219,14 @@ class DeliveryInfo(BaseEntity, SensorEntity):
 
                 # Create full delivery datetime
                 delivery_dt = datetime(
-                    current_year, month, day, hour, minute, tzinfo=prague_tz
+                    current_year, month, day, hour, minute, tzinfo=tz
                 )
 
                 return delivery_dt
             except (ValueError, IndexError):
                 pass
 
-        # Check for Type 1: Time only
+        # -------------- TYPE 1: Time only --------------
         if time_matches:
             try:
                 time_str: str = time_matches[0]  # e.g., "17:23"
@@ -194,13 +237,13 @@ class DeliveryInfo(BaseEntity, SensorEntity):
 
                 # If the time has already passed today, it might refer to tomorrow
                 delivery_dt = datetime.combine(today, time(hour, minute))
-                delivery_dt = delivery_dt.replace(tzinfo=prague_tz)
+                delivery_dt = delivery_dt.replace(tzinfo=tz)
 
                 if delivery_dt < now:
                     # Time already passed today, assume it's for tomorrow
                     tomorrow = today + timedelta(days=1)
                     delivery_dt = datetime.combine(tomorrow, time(hour, minute))
-                    delivery_dt = delivery_dt.replace(tzinfo=prague_tz)
+                    delivery_dt = delivery_dt.replace(tzinfo=tz)
 
                 return delivery_dt
             except (ValueError, IndexError):
@@ -218,13 +261,13 @@ class DeliveryInfo(BaseEntity, SensorEntity):
                 today = now.date()
 
                 delivery_dt = datetime.combine(today, time(hour, minute))
-                delivery_dt = delivery_dt.replace(tzinfo=prague_tz)
+                delivery_dt = delivery_dt.replace(tzinfo=tz)
 
                 # If the time has already passed today, it might refer to tomorrow
                 if delivery_dt < now:
                     tomorrow = today + timedelta(days=1)
                     delivery_dt = datetime.combine(tomorrow, time(hour, minute))
-                    delivery_dt = delivery_dt.replace(tzinfo=prague_tz)
+                    delivery_dt = delivery_dt.replace(tzinfo=tz)
 
                 return delivery_dt
             except (ValueError, IndexError):
@@ -241,7 +284,8 @@ class DeliveryInfo(BaseEntity, SensorEntity):
         ]["announcements"]
         if len(delivery_info) > 0:
             delivery_time = self.extract_delivery_datetime(
-                delivery_info[0].get("content", "")
+                delivery_info[0].get("content", ""),
+                self._rohlik_account.is_knuspr,
             )
 
             if delivery_info[0].get("additionalContent", None):
@@ -944,19 +988,135 @@ class LastOrder(BaseEntity, SensorEntity):
         self._rohlik_account.remove_callback(self.async_write_ha_state)
 
 
+class ParsedDeliveryTimeSensor(BaseEntity, SensorEntity):
+    """Sensor providing parsed delivery time as timestamp."""
+
+    _attr_translation_key = "delivery_eta"
+    _attr_should_poll = False
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return extracted delivery time."""
+        delivery_info: list = self._rohlik_account.data["delivery_announcements"][
+            "data"
+        ]["announcements"]
+
+        if len(delivery_info) == 0:
+            return None
+
+        return DeliveryInfo.extract_delivery_datetime(
+            delivery_info[0].get("content", ""), self._rohlik_account.is_knuspr
+        )
+
+    @property
+    def icon(self) -> str:
+        return ICON_INFO
+
+    async def async_added_to_hass(self) -> None:
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+
+class NextOrderIDSensor(BaseEntity, SensorEntity):
+    """Sensor providing next order ID."""
+
+    _attr_translation_key = "next_order_number"
+    _attr_should_poll = False
+
+    @property
+    def native_value(self) -> str | None:
+        """Return ID of the next order if available."""
+        if len(self._rohlik_account.data.get("next_order", [])) == 0:
+            return None
+        return str(self._rohlik_account.data["next_order"][0].get("id"))
+
+    @property
+    def icon(self) -> str:
+        return ICON_INFO
+
+    async def async_added_to_hass(self) -> None:
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+
+
 class UpdateSensor(BaseEntity, SensorEntity):
-    """Sensor for API update."""
+    """Sensor responsible for fetching data at a dynamic interval."""
 
     _attr_translation_key = "updated"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = ICON_UPDATE
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_should_poll = False  # We handle our own scheduling
+
+    _LONG_INTERVAL: timedelta = timedelta(minutes=10)
+    _SHORT_INTERVAL: timedelta = timedelta(minutes=2)
 
     def __init__(self, rohlik_account: RohlikAccount) -> None:
         super().__init__(rohlik_account)
         self._attr_native_value = datetime.now(tz=ZoneInfo("Europe/Prague"))
+        self._unsub_timer: Callable[[], None] | None = None
+
+    async def async_added_to_hass(self) -> None:
+        # Register for hub callbacks
+        self._rohlik_account.register_callback(self.async_write_ha_state)
+
+        # Schedule the first recurring update
+        self._schedule_updates(self._LONG_INTERVAL)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._rohlik_account.remove_callback(self.async_write_ha_state)
+        if self._unsub_timer:
+            self._unsub_timer()
+
+    def _schedule_updates(self, interval: timedelta) -> None:
+        """(Re)schedule periodic updates with the given interval."""
+        if self._unsub_timer:
+            self._unsub_timer()
+
+        self._unsub_timer = async_track_time_interval(
+            self.hass, self._scheduled_update, interval
+        )
+
+    async def _scheduled_update(self, _now: datetime) -> None:
+        await self.async_update()
 
     async def async_update(self) -> None:
-        """Calls regular update of data from API."""
+        """Fetch data from API and dynamically adjust interval."""
         await self._rohlik_account.async_update()
         self._attr_native_value = datetime.now(tz=ZoneInfo("Europe/Prague"))
+
+        # Determine if we need to speed up polling
+        now = dt_util.utcnow().astimezone(ZoneInfo("Europe/Prague"))
+
+        # Calculate next delivery start
+        next_order_list = self._rohlik_account.data.get("next_order", [])
+        within_two_hours = False
+        if next_order_list:
+            since_str = next_order_list[0].get("deliverySlot", {}).get("since")
+            if since_str:
+                try:
+                    delivery_since = datetime.strptime(
+                        since_str, "%Y-%m-%dT%H:%M:%S.%f%z"
+                    )
+                    if 0 <= (delivery_since - now).total_seconds() <= 7200:
+                        within_two_hours = True
+                except ValueError:
+                    pass
+
+        # Adjust interval based on time to delivery
+        desired_interval = (
+            self._SHORT_INTERVAL if within_two_hours else self._LONG_INTERVAL
+        )
+
+        # Check current interval (approximate by comparing callback frequency)
+        # We will simply reschedule when desired differs from long vs short flag
+        current_short = (
+            self._unsub_timer is not None and desired_interval == self._SHORT_INTERVAL
+        )
+        if within_two_hours != current_short:
+            self._schedule_updates(desired_interval)
